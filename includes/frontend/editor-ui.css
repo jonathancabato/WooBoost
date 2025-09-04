@@ -8,9 +8,80 @@
  * @since 1.0.0
  */
 
-/* Future styles for floating button will go here in Step 4 */
+/* Floating Button Styles */
 .wooboost-floating-button {
-    /* Placeholder for floating button styles */
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: #007cba;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 0; /* Hide any text content */
+}
+
+.wooboost-floating-button:hover {
+    background: #005a87;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+}
+
+.wooboost-floating-button:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+}
+
+.wooboost-floating-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.wooboost-floating-button svg {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+}
+
+/* Show Tab Styles (when button is hidden) */
+.wooboost-show-tab {
+    position: absolute;
+    top: 50%;
+    right: -1px;
+    transform: translateY(-50%);
+    background: #f0f0f1;
+    border: 1px solid #dcdcde;
+    border-right: none;
+    color: #1d2327;
+    padding: 8px 4px;
+    font-size: 11px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    cursor: pointer;
+    z-index: 999999;
+    border-radius: 4px 0 0 4px;
+    transition: background-color 0.2s ease;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wooboost-show-tab:hover {
+    background: #e5e5e5;
+}
+
+.wooboost-show-tab:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: -2px;
 }
 
 /* Future styles for modal will go here in Step 5 */
@@ -41,4 +112,19 @@
 
 .wooboost-debug .error {
     color: #d63638;
+}
+
+/* Responsive adjustments */
+@media (max-width: 782px) {
+    .wooboost-floating-button {
+        bottom: 12px;
+        right: 12px;
+        width: 48px;
+        height: 48px;
+    }
+    
+    .wooboost-floating-button svg {
+        width: 22px;
+        height: 22px;
+    }
 }
