@@ -174,10 +174,13 @@
                 console.log('WooBoost: Detected basic textarea editor');
             }
             
-            // Always check for excerpt field
-            if ($('#excerpt').length > 0) {
-                this.editorState.excerptField = $('#excerpt');
-                console.log('WooBoost: Found excerpt field');
+            // Always check for excerpt field using improved detection
+            var $excerptField = this.findExcerptField();
+            if ($excerptField && $excerptField.length > 0) {
+                this.editorState.excerptField = $excerptField;
+                console.log('WooBoost: Found excerpt field during initialization');
+            } else {
+                console.log('WooBoost: Excerpt field not found during initialization - will search again during insertion');
             }
         },
         
@@ -840,6 +843,8 @@
          * Insert content into appropriate WordPress editors - Step 7
          */
         insertContentIntoEditors: function(data) {
+            console.log('WooBoost: Starting content insertion with data:', data);
+            
             var results = {
                 success: false,
                 inserted: [],
@@ -848,27 +853,36 @@
             
             // Insert description into main content editor
             if (data.description) {
+                console.log('WooBoost: Inserting description into main editor');
                 var descriptionResult = this.insertIntoMainEditor(data.description);
                 if (descriptionResult.success) {
                     results.inserted.push('Product description');
+                    console.log('WooBoost: Description insertion successful');
                 } else {
                     results.errors.push('Failed to insert description: ' + descriptionResult.error);
+                    console.error('WooBoost: Description insertion failed:', descriptionResult.error);
                 }
             }
             
             // Insert excerpt into excerpt field
             if (data.excerpt) {
+                console.log('WooBoost: Inserting excerpt into excerpt field');
                 var excerptResult = this.insertIntoExcerptField(data.excerpt);
                 if (excerptResult.success) {
                     results.inserted.push('Product excerpt');
+                    console.log('WooBoost: Excerpt insertion successful');
                 } else {
                     results.errors.push('Failed to insert excerpt: ' + excerptResult.error);
+                    console.error('WooBoost: Excerpt insertion failed:', excerptResult.error);
                 }
+            } else {
+                console.log('WooBoost: No excerpt data provided');
             }
             
             // Consider it successful if at least one insertion worked
             results.success = results.inserted.length > 0;
             
+            console.log('WooBoost: Content insertion completed:', results);
             return results;
         },
         
@@ -1012,29 +1026,113 @@
          * Insert content into excerpt field - Enhanced Step 7
          */
         insertIntoExcerptField: function(excerpt) {
-            // Use cached excerpt field if available
-            var $excerptField = this.editorState.excerptField || $('#excerpt');
+            console.log('WooBoost: Attempting to insert excerpt:', excerpt);
+            
+            // Try multiple approaches to find the excerpt field
+            var $excerptField = this.findExcerptField();
             
             if (!$excerptField || !$excerptField.length) {
+                console.warn('WooBoost: Excerpt field not found');
                 return { 
                     success: false, 
                     error: 'Excerpt field not found. You may need to enable it in Screen Options.' 
                 };
             }
             
+            console.log('WooBoost: Found excerpt field:', $excerptField);
+            
             try {
+                // Clear any existing content first
+                $excerptField.val('');
+                
+                // Set the new excerpt content
                 $excerptField.val(excerpt);
+                
+                // Trigger multiple events to ensure WordPress detects the change
+                $excerptField.trigger('input');
                 $excerptField.trigger('change');
+                $excerptField.trigger('keyup');
+                
+                // Update cached reference for future use
+                this.editorState.excerptField = $excerptField;
                 
                 // Visual feedback - briefly highlight the field
                 this.highlightField($excerptField);
                 
+                console.log('WooBoost: Successfully inserted excerpt into field');
                 return { success: true, method: 'Textarea' };
             } catch (e) {
+                console.error('WooBoost: Error inserting excerpt:', e);
                 return { 
                     success: false, 
                     error: 'Failed to insert into excerpt field: ' + e.message 
                 };
+            }
+        },
+        
+        /**
+         * Find excerpt field using multiple selectors and approaches
+         */
+        findExcerptField: function() {
+            // Try multiple selectors for the excerpt field
+            var selectors = [
+                '#excerpt',                    // Standard WordPress excerpt field
+                '#postexcerpt #excerpt',      // Excerpt within postexcerpt meta box
+                '.postbox #excerpt',          // Excerpt within any meta box
+                'textarea[name="excerpt"]',   // By name attribute
+                '#postexcerpt textarea',      // Any textarea in excerpt meta box
+                '.postdivrich textarea'       // Fallback textarea
+            ];
+            
+            for (var i = 0; i < selectors.length; i++) {
+                var $field = $(selectors[i]);
+                if ($field.length > 0 && $field.is(':visible, :hidden')) {
+                    console.log('WooBoost: Found excerpt field using selector:', selectors[i]);
+                    return $field.first();
+                }
+            }
+            
+            // If still not found, try to show the excerpt meta box if it's hidden
+            this.ensureExcerptMetaBoxVisible();
+            
+            // Try again after attempting to show the meta box
+            var $excerptAgain = $('#excerpt');
+            if ($excerptAgain.length > 0) {
+                console.log('WooBoost: Found excerpt field after showing meta box');
+                return $excerptAgain;
+            }
+            
+            console.warn('WooBoost: Could not find excerpt field with any selector');
+            return null;
+        },
+        
+        /**
+         * Attempt to make excerpt meta box visible if it's hidden
+         */
+        ensureExcerptMetaBoxVisible: function() {
+            try {
+                // Check if the excerpt meta box exists but is hidden
+                var $excerptMetaBox = $('#postexcerpt');
+                if ($excerptMetaBox.length > 0) {
+                    console.log('WooBoost: Excerpt meta box found');
+                    
+                    // If it's hidden, try to show it
+                    if ($excerptMetaBox.is(':hidden') || !$excerptMetaBox.is(':visible')) {
+                        console.log('WooBoost: Excerpt meta box is hidden, attempting to show it');
+                        $excerptMetaBox.show();
+                        
+                        // Also check if it's in the Screen Options and try to enable it
+                        var $screenOptionCheckbox = $('#postexcerpt-hide');
+                        if ($screenOptionCheckbox.length > 0 && !$screenOptionCheckbox.is(':checked')) {
+                            console.log('WooBoost: Enabling excerpt in screen options');
+                            $screenOptionCheckbox.prop('checked', true).trigger('change');
+                        }
+                    }
+                } else {
+                    console.log('WooBoost: Excerpt meta box not found in DOM');
+                }
+            } catch (e) {
+                console.warn('WooBoost: Error attempting to show excerpt meta box:', e);
             }
         },
         
@@ -1061,11 +1159,18 @@
                 message += '\n\nInserted: ' + results.inserted.join(', ');
             }
             
+            // Add specific feedback about excerpt insertion
+            if (results.inserted.indexOf('Product excerpt') !== -1) {
+                message += '\n\nNote: Product excerpt has been inserted into the excerpt field.';
+            }
+            
             // Provide visual feedback on the inserted fields
             this.highlightInsertedContent();
             
             // Show WordPress-style admin notice
             this.showAdminNotice(message, 'success');
+            
+            console.log('WooBoost: Insertion completed successfully:', results);
         },
         
         /**
@@ -1105,7 +1210,18 @@
             var message = 'Failed to insert content:';
             if (errors.length > 0) {
                 message += '\n\n• ' + errors.join('\n• ');
+                
+                // Add specific help for excerpt-related errors
+                var hasExcerptError = errors.some(function(error) {
+                    return error.toLowerCase().indexOf('excerpt') !== -1;
+                });
+                
+                if (hasExcerptError) {
+                    message += '\n\nTip: To enable the excerpt field, click "Screen Options" at the top of this page and check "Excerpt".';
+                }
             }
+            
+            console.error('WooBoost: Insertion errors:', errors);
             
             // Show WordPress-style admin notice
             this.showAdminNotice(message, 'error');

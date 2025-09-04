@@ -1,3 +1,8 @@
 # Ignore github directories
 .github/instructions
 .github/prompts
+
+# Ignore temporary test files
+/tmp/
+*.tmp
+test-*.html
