@@ -39,7 +39,9 @@
         elements: {
             button: null,
             showTab: null,
-            editorContainer: null
+            editorContainer: null,
+            modal: null,
+            modalOverlay: null
         },
         
         /**
@@ -204,8 +206,7 @@
         onButtonClick: function(e) {
             e.preventDefault();
             console.log('WooBoost: Button clicked');
-            // TODO: In Step 5, open modal here
-            alert('WooBoost button clicked! Modal will be implemented in Step 5.');
+            this.openModal();
         },
         
         /**
@@ -272,6 +273,399 @@
             };
             
             return this.apiCall('/generate', 'POST', testData);
+        },
+        
+        /**
+         * Open the generation modal - Step 5
+         */
+        openModal: function() {
+            if (this.elements.modal) {
+                this.showModal();
+                return;
+            }
+            
+            this.createModal();
+            this.showModal();
+        },
+        
+        /**
+         * Create the modal HTML - Step 5
+         */
+        createModal: function() {
+            var productData = this.extractProductData();
+            
+            var modalHTML = '<div class="wooboost-modal-overlay" id="wooboost-modal-overlay">' +
+                '<div class="wooboost-modal" role="dialog" aria-labelledby="wooboost-modal-title" aria-modal="true">' +
+                    '<div class="wooboost-modal-header">' +
+                        '<h2 class="wooboost-modal-title" id="wooboost-modal-title">Generate Product Content</h2>' +
+                        '<button type="button" class="wooboost-modal-close" aria-label="Close modal">&times;</button>' +
+                    '</div>' +
+                    '<div class="wooboost-modal-body">' +
+                        '<form id="wooboost-generation-form">' +
+                            '<div class="wooboost-form-section">' +
+                                '<h3 class="wooboost-form-section-title">Content Options</h3>' +
+                                
+                                '<div class="wooboost-form-row">' +
+                                    '<label class="wooboost-form-label" for="wooboost-model">AI Model</label>' +
+                                    '<select class="wooboost-form-select" id="wooboost-model" name="model">' +
+                                        '<option value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster)</option>' +
+                                        '<option value="gpt-4">GPT-4 (Higher Quality)</option>' +
+                                        '<option value="gpt-4-turbo-preview">GPT-4 Turbo (Latest)</option>' +
+                                    '</select>' +
+                                    '<div class="wooboost-form-help">Choose the AI model for content generation</div>' +
+                                '</div>' +
+                                
+                                '<div class="wooboost-form-row">' +
+                                    '<label class="wooboost-form-label" for="wooboost-length">Content Length</label>' +
+                                    '<select class="wooboost-form-select" id="wooboost-length" name="length">' +
+                                        '<option value="Small">Small (Brief description)</option>' +
+                                        '<option value="Medium" selected>Medium (Balanced)</option>' +
+                                        '<option value="Large">Large (Comprehensive)</option>' +
+                                        '<option value="Detailed">Detailed (Extensive)</option>' +
+                                    '</select>' +
+                                    '<div class="wooboost-form-help">Choose how much content to generate</div>' +
+                                '</div>' +
+                                
+                                '<div class="wooboost-form-row">' +
+                                    '<label class="wooboost-form-label" for="wooboost-creativity">Creativity Level</label>' +
+                                    '<select class="wooboost-form-select" id="wooboost-creativity" name="creativity">' +
+                                        '<option value="Low">Low (Conservative)</option>' +
+                                        '<option value="Medium" selected>Medium (Balanced)</option>' +
+                                        '<option value="High">High (Creative)</option>' +
+                                        '<option value="Max">Max (Very Creative)</option>' +
+                                    '</select>' +
+                                    '<div class="wooboost-form-help">Control how creative the AI should be</div>' +
+                                '</div>' +
+                                
+                                '<div class="wooboost-form-row">' +
+                                    '<label class="wooboost-form-label" for="wooboost-style">Writing Style</label>' +
+                                    '<select class="wooboost-form-select" id="wooboost-style" name="style">' +
+                                        '<option value="Formal" selected>Formal (Professional)</option>' +
+                                        '<option value="Casual">Casual (Friendly)</option>' +
+                                        '<option value="Persuasive">Persuasive (Sales-focused)</option>' +
+                                        '<option value="Creative">Creative (Unique)</option>' +
+                                    '</select>' +
+                                    '<div class="wooboost-form-help">Choose the tone and style of writing</div>' +
+                                '</div>' +
+                                
+                                '<div class="wooboost-form-row">' +
+                                    '<label class="wooboost-form-label" for="wooboost-format">Output Format</label>' +
+                                    '<select class="wooboost-form-select" id="wooboost-format" name="format">' +
+                                        '<option value="Plain text" selected>Plain text</option>' +
+                                        '<option value="Rich typography">Rich typography (Bold, italics)</option>' +
+                                    '</select>' +
+                                    '<div class="wooboost-form-help">Choose how to format the generated content</div>' +
+                                '</div>' +
+                            '</div>' +
+                            
+                            '<div class="wooboost-form-section">' +
+                                '<h3 class="wooboost-form-section-title">Product Information</h3>' +
+                                '<div class="wooboost-product-info">' +
+                                    '<div class="wooboost-product-info-title">Current Product Data</div>' +
+                                    '<div class="wooboost-product-info-item"><strong>Title:</strong> ' + (productData.title || 'Not set') + '</div>' +
+                                    '<div class="wooboost-product-info-item"><strong>Categories:</strong> ' + (productData.categories || 'None') + '</div>' +
+                                    '<div class="wooboost-product-info-item"><strong>Tags:</strong> ' + (productData.tags || 'None') + '</div>' +
+                                    '<div class="wooboost-product-info-item"><strong>Price:</strong> ' + (productData.price || 'Not set') + '</div>' +
+                                '</div>' +
+                                '<div class="wooboost-form-help">This information will be used to generate relevant content for your product.</div>' +
+                            '</div>' +
+                            
+                            '<div id="wooboost-error-container"></div>' +
+                        '</form>' +
+                    '</div>' +
+                    '<div class="wooboost-modal-footer">' +
+                        '<button type="button" class="wooboost-btn wooboost-btn-secondary" id="wooboost-cancel-btn">Cancel</button>' +
+                        '<button type="button" class="wooboost-btn wooboost-btn-primary" id="wooboost-generate-btn">' +
+                            '<span class="wooboost-btn-text">Generate Content</span>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+            
+            // Append to body
+            $('body').append(modalHTML);
+            
+            // Store references
+            this.elements.modalOverlay = $('#wooboost-modal-overlay');
+            this.elements.modal = this.elements.modalOverlay.find('.wooboost-modal');
+            
+            // Attach event handlers
+            this.attachModalEvents();
+        },
+        
+        /**
+         * Show the modal - Step 5
+         */
+        showModal: function() {
+            this.elements.modalOverlay.addClass('active');
+            
+            // Focus management
+            this.elements.modal.find('#wooboost-model').focus();
+            
+            // Prevent body scroll
+            $('body').addClass('wooboost-modal-open');
+            
+            // Add style to prevent body scroll
+            if (!$('#wooboost-modal-style').length) {
+                $('<style id="wooboost-modal-style">.wooboost-modal-open { overflow: hidden; }</style>').appendTo('head');
+            }
+        },
+        
+        /**
+         * Hide the modal - Step 5
+         */
+        hideModal: function() {
+            this.elements.modalOverlay.removeClass('active');
+            
+            // Restore body scroll
+            $('body').removeClass('wooboost-modal-open');
+            
+            // Return focus to button
+            if (this.elements.button) {
+                this.elements.button.focus();
+            }
+            
+            // Clean up event listeners
+            $(document).off('keydown.wooboost-modal');
+        },
+        
+        /**
+         * Attach modal event handlers - Step 5
+         */
+        attachModalEvents: function() {
+            var self = this;
+            
+            // Close button
+            this.elements.modal.find('.wooboost-modal-close').on('click', function() {
+                self.hideModal();
+            });
+            
+            // Cancel button
+            $('#wooboost-cancel-btn').on('click', function() {
+                self.hideModal();
+            });
+            
+            // Generate button
+            $('#wooboost-generate-btn').on('click', function() {
+                self.handleGenerateClick();
+            });
+            
+            // Overlay click to close
+            this.elements.modalOverlay.on('click', function(e) {
+                if (e.target === self.elements.modalOverlay[0]) {
+                    self.hideModal();
+                }
+            });
+            
+            // Escape key to close
+            $(document).on('keydown.wooboost-modal', function(e) {
+                if (e.key === 'Escape') {
+                    self.hideModal();
+                }
+            });
+            
+            // Trap focus in modal
+            this.trapFocus();
+        },
+        
+        /**
+         * Handle generate button click - Step 5
+         */
+        handleGenerateClick: function() {
+            console.log('WooBoost: Generate button clicked');
+            
+            // Get form data
+            var formData = this.getFormData();
+            
+            // Validate form
+            if (!this.validateForm(formData)) {
+                return;
+            }
+            
+            // Clear any previous errors
+            this.clearErrors();
+            
+            // Show loading state
+            this.setGenerateLoading(true);
+            
+            // For now, just show the data that would be sent
+            // In Step 6, this will make the actual API call
+            console.log('Form data to send:', formData);
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                this.setGenerateLoading(false);
+                alert('Step 5 Complete! Form data collected:\n\n' + JSON.stringify(formData, null, 2) + '\n\nStep 6 will implement the actual API call.');
+                this.hideModal();
+            }, 1000);
+        },
+        
+        /**
+         * Get form data - Step 5
+         */
+        getFormData: function() {
+            var $form = $('#wooboost-generation-form');
+            var productData = this.extractProductData();
+            
+            return {
+                model: $form.find('#wooboost-model').val(),
+                length: $form.find('#wooboost-length').val(),
+                creativity: $form.find('#wooboost-creativity').val(),
+                style: $form.find('#wooboost-style').val(),
+                format: $form.find('#wooboost-format').val(),
+                product_data: productData
+            };
+        },
+        
+        /**
+         * Validate form data - Step 5
+         */
+        validateForm: function(formData) {
+            this.clearErrors();
+            
+            var errors = [];
+            
+            if (!formData.model) {
+                errors.push('Please select an AI model');
+            }
+            
+            if (!formData.length) {
+                errors.push('Please select a content length');
+            }
+            
+            if (!formData.product_data.title) {
+                errors.push('Product title is required. Please set a title for your product first.');
+            }
+            
+            if (errors.length > 0) {
+                this.showErrors(errors);
+                return false;
+            }
+            
+            return true;
+        },
+        
+        /**
+         * Show validation errors - Step 5
+         */
+        showErrors: function(errors) {
+            var errorHTML = '<div class="wooboost-error-message">';
+            errorHTML += '<strong>Please fix the following errors:</strong><ul>';
+            
+            for (var i = 0; i < errors.length; i++) {
+                errorHTML += '<li>' + errors[i] + '</li>';
+            }
+            
+            errorHTML += '</ul></div>';
+            
+            $('#wooboost-error-container').html(errorHTML);
+        },
+        
+        /**
+         * Clear validation errors - Step 5
+         */
+        clearErrors: function() {
+            $('#wooboost-error-container').empty();
+        },
+        
+        /**
+         * Set loading state for generate button - Step 5
+         */
+        setGenerateLoading: function(loading) {
+            var $btn = $('#wooboost-generate-btn');
+            var $text = $btn.find('.wooboost-btn-text');
+            
+            if (loading) {
+                $btn.prop('disabled', true);
+                $text.html('<span class="wooboost-loading-spinner"></span> Generating...');
+            } else {
+                $btn.prop('disabled', false);
+                $text.html('Generate Content');
+            }
+        },
+        
+        /**
+         * Extract product data from current page - Step 5
+         */
+        extractProductData: function() {
+            var data = {};
+            
+            // Get product title
+            var $title = $('#title');
+            if ($title.length) {
+                data.title = $title.val() || '';
+            }
+            
+            // Get categories
+            var categories = [];
+            $('#product_catchecklist input:checked').each(function() {
+                var $label = $('label[for="' + $(this).attr('id') + '"]');
+                if ($label.length) {
+                    categories.push($label.text().trim());
+                }
+            });
+            data.categories = categories.join(', ');
+            
+            // Get tags
+            var tags = [];
+            $('.tagchecklist .screen-reader-text').each(function() {
+                var tag = $(this).parent().text().replace($(this).text(), '').trim();
+                if (tag) {
+                    tags.push(tag);
+                }
+            });
+            data.tags = tags.join(', ');
+            
+            // Get price
+            var $price = $('#_regular_price');
+            if ($price.length) {
+                data.price = $price.val() || '';
+            }
+            
+            // Get existing description for context
+            var $content = $('#content');
+            if ($content.length) {
+                data.existing_description = $content.val() || '';
+            }
+            
+            // Get short description
+            var $excerpt = $('#excerpt');
+            if ($excerpt.length) {
+                data.short_description = $excerpt.val() || '';
+            }
+            
+            return data;
+        },
+        
+        /**
+         * Trap focus within modal - Step 5
+         */
+        trapFocus: function() {
+            var self = this;
+            
+            this.elements.modal.on('keydown', function(e) {
+                if (e.key !== 'Tab') {
+                    return;
+                }
+                
+                var focusableElements = self.elements.modal.find('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                var firstElement = focusableElements.first();
+                var lastElement = focusableElements.last();
+                
+                if (e.shiftKey) {
+                    // Shift + Tab
+                    if (document.activeElement === firstElement[0]) {
+                        e.preventDefault();
+                        lastElement.focus();
+                    }
+                } else {
+                    // Tab
+                    if (document.activeElement === lastElement[0]) {
+                        e.preventDefault();
+                        firstElement.focus();
+                    }
+                }
+            });
         }
     };
     
