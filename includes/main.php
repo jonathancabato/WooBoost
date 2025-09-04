@@ -40,10 +40,10 @@ class WooBoost_Core {
      * Load all modules
      */
     private function load_modules() {
+        $this->load_core_modules();
         // Future module loading here
         // $this->load_admin_modules();
         // $this->load_frontend_modules();
-        // $this->load_core_modules();
     }
     
     /**
@@ -64,7 +64,10 @@ class WooBoost_Core {
      * Load core modules
      */
     private function load_core_modules() {
-        // Future core module loading
+        // Load OpenAI client
+        if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/core/class-wooboost-openai.php')) {
+            require_once WOOBOOST_PLUGIN_DIR . 'includes/core/class-wooboost-openai.php';
+        }
     }
 }
 
