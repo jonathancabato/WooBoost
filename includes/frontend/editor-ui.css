@@ -1,0 +1,44 @@
+/**
+ * WooBoost Editor UI Styles
+ * 
+ * CSS for the ChatGPT content generator in the product editor
+ *
+ * @package WooBoost
+ * @subpackage Assets/CSS
+ * @since 1.0.0
+ */
+
+/* Future styles for floating button will go here in Step 4 */
+.wooboost-floating-button {
+    /* Placeholder for floating button styles */
+}
+
+/* Future styles for modal will go here in Step 5 */
+.wooboost-modal {
+    /* Placeholder for modal styles */
+}
+
+/* Debug/testing styles for Step 3 */
+.wooboost-debug {
+    background: #f0f0f1;
+    border: 1px solid #ccd0d4;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.wooboost-debug h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #1d2327;
+}
+
+.wooboost-debug .success {
+    color: #00a32a;
+}
+
+.wooboost-debug .error {
+    color: #d63638;
+}
