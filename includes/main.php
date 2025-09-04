@@ -41,6 +41,7 @@ class WooBoost_Core {
      */
     private function load_modules() {
         $this->load_core_modules();
+        $this->load_process_modules();
         // Future module loading here
         // $this->load_admin_modules();
         // $this->load_frontend_modules();
@@ -67,6 +68,17 @@ class WooBoost_Core {
         // Load OpenAI client
         if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/core/class-wooboost-openai.php')) {
             require_once WOOBOOST_PLUGIN_DIR . 'includes/core/class-wooboost-openai.php';
+        }
+    }
+    
+    /**
+     * Load process modules
+     */
+    private function load_process_modules() {
+        // Load REST API controller
+        if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/process/class-wooboost-rest.php')) {
+            require_once WOOBOOST_PLUGIN_DIR . 'includes/process/class-wooboost-rest.php';
+            new WooBoost_REST();
         }
     }
 }
