@@ -469,7 +469,7 @@
         },
         
         /**
-         * Handle generate button click - Step 5
+         * Handle generate button click - Step 6
          */
         handleGenerateClick: function() {
             console.log('WooBoost: Generate button clicked');
@@ -488,16 +488,157 @@
             // Show loading state
             this.setGenerateLoading(true);
             
-            // For now, just show the data that would be sent
-            // In Step 6, this will make the actual API call
-            console.log('Form data to send:', formData);
+            // Make the API call
+            this.generateContent(formData);
+        },
+        
+        /**
+         * Generate content via API - Step 6
+         */
+        generateContent: function(formData) {
+            var self = this;
             
-            // Simulate API call delay
-            setTimeout(() => {
-                this.setGenerateLoading(false);
-                alert('Step 5 Complete! Form data collected:\n\n' + JSON.stringify(formData, null, 2) + '\n\nStep 6 will implement the actual API call.');
-                this.hideModal();
-            }, 1000);
+            this.apiCall('/generate', 'POST', formData)
+                .done(function(response) {
+                    console.log('WooBoost: Content generated successfully', response);
+                    
+                    if (response.success && response.data) {
+                        self.handleGenerationSuccess(response.data);
+                    } else {
+                        self.handleGenerationError('Invalid response format from server');
+                    }
+                })
+                .fail(function(xhr, status, error) {
+                    console.error('WooBoost: Content generation failed', xhr, status, error);
+                    
+                    var errorMessage = 'Content generation failed';
+                    
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+                        errorMessage = xhr.responseJSON.data.message;
+                    } else if (error) {
+                        errorMessage = 'Network error: ' + error;
+                    }
+                    
+                    self.handleGenerationError(errorMessage);
+                })
+                .always(function() {
+                    self.setGenerateLoading(false);
+                });
+        },
+        
+        /**
+         * Handle successful content generation - Step 6
+         */
+        handleGenerationSuccess: function(data) {
+            console.log('WooBoost: Handling generation success', data);
+            
+            // For Step 6, we'll show the generated content in the modal
+            // Step 7 will implement the actual editor insertion
+            this.showGeneratedContent(data);
+        },
+        
+        /**
+         * Handle content generation error - Step 6
+         */
+        handleGenerationError: function(errorMessage) {
+            console.error('WooBoost: Generation error:', errorMessage);
+            
+            this.showErrors([errorMessage]);
+            
+            // Scroll to error message
+            var $errorContainer = $('#wooboost-error-container');
+            if ($errorContainer.length) {
+                $errorContainer[0].scrollIntoView({ behavior: 'smooth' });
+            }
+        },
+        
+        /**
+         * Show generated content in modal - Step 6
+         */
+        showGeneratedContent: function(data) {
+            var $modalBody = this.elements.modal.find('.wooboost-modal-body');
+            
+            // Create content preview section
+            var contentHTML = '<div class="wooboost-generated-content">' +
+                '<h3 class="wooboost-form-section-title">Generated Content</h3>';
+            
+            if (data.excerpt) {
+                contentHTML += '<div class="wooboost-content-section">' +
+                    '<h4>Product Excerpt:</h4>' +
+                    '<div class="wooboost-content-preview">' + this.escapeHtml(data.excerpt) + '</div>' +
+                '</div>';
+            }
+            
+            if (data.description) {
+                contentHTML += '<div class="wooboost-content-section">' +
+                    '<h4>Product Description:</h4>' +
+                    '<div class="wooboost-content-preview">' + this.escapeHtml(data.description) + '</div>' +
+                '</div>';
+            }
+            
+            // Add action buttons for Step 7
+            contentHTML += '<div class="wooboost-content-actions">' +
+                '<button type="button" class="wooboost-btn wooboost-btn-secondary" id="wooboost-regenerate-btn">Regenerate</button>' +
+                '<button type="button" class="wooboost-btn wooboost-btn-primary" id="wooboost-use-content-btn">Use This Content</button>' +
+            '</div>';
+            
+            contentHTML += '</div>';
+            
+            // Remove existing generated content if any
+            $modalBody.find('.wooboost-generated-content').remove();
+            
+            // Append new content
+            $modalBody.append(contentHTML);
+            
+            // Attach event handlers for new buttons
+            var self = this;
+            $('#wooboost-regenerate-btn').on('click', function() {
+                self.regenerateContent();
+            });
+            
+            $('#wooboost-use-content-btn').on('click', function() {
+                self.useGeneratedContent(data);
+            });
+            
+            // Scroll to generated content
+            $('.wooboost-generated-content')[0].scrollIntoView({ behavior: 'smooth' });
+        },
+        
+        /**
+         * Regenerate content - Step 6
+         */
+        regenerateContent: function() {
+            // Remove generated content section
+            $('.wooboost-generated-content').remove();
+            
+            // Trigger generation again with current form data
+            var formData = this.getFormData();
+            if (this.validateForm(formData)) {
+                this.clearErrors();
+                this.setGenerateLoading(true);
+                this.generateContent(formData);
+            }
+        },
+        
+        /**
+         * Use generated content - Step 6 (placeholder for Step 7)
+         */
+        useGeneratedContent: function(data) {
+            // Step 7 will implement the actual editor insertion
+            // For now, just show a message and close modal
+            alert('Step 6 Complete! Content generated successfully.\n\nStep 7 will implement inserting this content into the product editor.\n\nGenerated content:\n- Excerpt: ' + data.excerpt + '\n- Description: ' + data.description);
+            this.hideModal();
+        },
+        
+        /**
+         * Escape HTML for safe display
+         */
+        escapeHtml: function(text) {
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         },
         
         /**
