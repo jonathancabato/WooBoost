@@ -1,0 +1,444 @@
+/**
+ * WooBoost Editor UI Styles
+ * 
+ * CSS for the ChatGPT content generator in the product editor
+ *
+ * @package WooBoost
+ * @subpackage Assets/CSS
+ * @since 1.0.0
+ */
+
+/* Floating Button Styles */
+.wooboost-floating-button {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: #007cba;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 0; /* Hide any text content */
+}
+
+.wooboost-floating-button:hover {
+    background: #005a87;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+}
+
+.wooboost-floating-button:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+}
+
+.wooboost-floating-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.wooboost-floating-button svg {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+}
+
+/* Show Tab Styles (when button is hidden) */
+.wooboost-show-tab {
+    position: absolute;
+    top: 50%;
+    right: -1px;
+    transform: translateY(-50%);
+    background: #f0f0f1;
+    border: 1px solid #dcdcde;
+    border-right: none;
+    color: #1d2327;
+    padding: 8px 4px;
+    font-size: 11px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    cursor: pointer;
+    z-index: 999999;
+    border-radius: 4px 0 0 4px;
+    transition: background-color 0.2s ease;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wooboost-show-tab:hover {
+    background: #e5e5e5;
+}
+
+.wooboost-show-tab:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: -2px;
+}
+
+/* Modal Styles - Step 5 */
+.wooboost-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.wooboost-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.wooboost-modal {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    transform: translateY(-20px) scale(0.95);
+    transition: transform 0.3s ease;
+    position: relative;
+}
+
+.wooboost-modal-overlay.active .wooboost-modal {
+    transform: translateY(0) scale(1);
+}
+
+.wooboost-modal-header {
+    padding: 20px 24px 0;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.wooboost-modal-title {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d2327;
+    line-height: 1.4;
+}
+
+.wooboost-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #646970;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.wooboost-modal-close:hover {
+    background: #f0f0f1;
+    color: #1d2327;
+}
+
+.wooboost-modal-close:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: -2px;
+}
+
+.wooboost-modal-body {
+    padding: 0 24px 24px;
+}
+
+.wooboost-form-row {
+    margin-bottom: 16px;
+}
+
+.wooboost-form-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #1d2327;
+    font-size: 14px;
+}
+
+.wooboost-form-select,
+.wooboost-form-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: 14px;
+    background: #fff;
+    color: #1d2327;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wooboost-form-select:focus,
+.wooboost-form-input:focus {
+    outline: none;
+    border-color: #007cba;
+    box-shadow: 0 0 0 1px #007cba;
+}
+
+.wooboost-form-select {
+    cursor: pointer;
+}
+
+.wooboost-form-help {
+    font-size: 12px;
+    color: #646970;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
+.wooboost-form-section {
+    margin-bottom: 24px;
+}
+
+.wooboost-form-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d2327;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.wooboost-product-info {
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 16px;
+}
+
+.wooboost-product-info-title {
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    color: #1d2327;
+}
+
+.wooboost-product-info-item {
+    font-size: 13px;
+    color: #646970;
+    margin-bottom: 4px;
+}
+
+.wooboost-product-info-item strong {
+    color: #1d2327;
+}
+
+.wooboost-modal-footer {
+    padding: 16px 24px 24px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.wooboost-btn {
+    padding: 8px 16px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    min-height: 36px;
+}
+
+.wooboost-btn-primary {
+    background: #007cba;
+    color: #fff;
+    border-color: #007cba;
+}
+
+.wooboost-btn-primary:hover {
+    background: #005a87;
+    border-color: #005a87;
+    color: #fff;
+}
+
+.wooboost-btn-primary:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+}
+
+.wooboost-btn-primary:disabled {
+    background: #a7aaad;
+    border-color: #a7aaad;
+    cursor: not-allowed;
+}
+
+.wooboost-btn-secondary {
+    background: #fff;
+    color: #1d2327;
+    border-color: #8c8f94;
+}
+
+.wooboost-btn-secondary:hover {
+    background: #f6f7f7;
+    border-color: #646970;
+    color: #1d2327;
+}
+
+.wooboost-btn-secondary:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+}
+
+.wooboost-loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: wooboost-spin 1s linear infinite;
+}
+
+@keyframes wooboost-spin {
+    to { transform: rotate(360deg); }
+}
+
+.wooboost-error-message {
+    background: #fcf2f2;
+    border: 1px solid #f56565;
+    color: #c53030;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+/* Debug/testing styles for Step 3 */
+.wooboost-debug {
+    background: #f0f0f1;
+    border: 1px solid #ccd0d4;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.wooboost-debug h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #1d2327;
+}
+
+.wooboost-debug .success {
+    color: #00a32a;
+}
+
+.wooboost-debug .error {
+    color: #d63638;
+}
+
+/* Responsive adjustments */
+@media (max-width: 782px) {
+    .wooboost-floating-button {
+        bottom: 12px;
+        right: 12px;
+        width: 48px;
+        height: 48px;
+    }
+    
+    .wooboost-floating-button svg {
+        width: 22px;
+        height: 22px;
+    }
+    
+    .wooboost-content-actions {
+        flex-direction: column;
+    }
+    
+    .wooboost-content-actions .wooboost-btn {
+        min-width: auto;
+        width: 100%;
+    }
+}
+
+/* Generated Content Styles */
+.wooboost-generated-content {
+    margin-top: 24px;
+    padding: 20px;
+    background: #f0f6fc;
+    border: 1px solid #c3e4f0;
+    border-radius: 4px;
+}
+
+.wooboost-generated-content h3 {
+    margin: 0 0 16px 0;
+    color: #007cba;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.wooboost-content-section {
+    margin-bottom: 20px;
+}
+
+.wooboost-content-section:last-of-type {
+    margin-bottom: 0;
+}
+
+.wooboost-content-section h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.wooboost-content-preview {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #1d2327;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.wooboost-content-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #c3e4f0;
+}
+
+.wooboost-content-actions .wooboost-btn {
+    min-width: 120px;
+}

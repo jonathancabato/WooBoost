@@ -40,10 +40,11 @@ class WooBoost_Core {
      * Load all modules
      */
     private function load_modules() {
+        $this->load_core_modules();
+        $this->load_process_modules();
+        $this->load_frontend_modules();
         // Future module loading here
         // $this->load_admin_modules();
-        // $this->load_frontend_modules();
-        // $this->load_core_modules();
     }
     
     /**
@@ -57,14 +58,44 @@ class WooBoost_Core {
      * Load frontend modules
      */
     private function load_frontend_modules() {
-        // Future frontend module loading
+        // Load frontend functionality
+        if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/frontend/class-wooboost-frontend.php')) {
+            require_once WOOBOOST_PLUGIN_DIR . 'includes/frontend/class-wooboost-frontend.php';
+            new WooBoost_Frontend();
+        }
     }
     
     /**
      * Load core modules
      */
     private function load_core_modules() {
-        // Future core module loading
+        // Load Logger first
+        if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/core/class-wooboost-logger.php')) {
+            require_once WOOBOOST_PLUGIN_DIR . 'includes/core/class-wooboost-logger.php';
+            WooBoost_Logger::info('WooBoost Logger initialized');
+        }
+        
+        // Load OpenAI client
+        if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/core/class-wooboost-openai.php')) {
+            require_once WOOBOOST_PLUGIN_DIR . 'includes/core/class-wooboost-openai.php';
+            WooBoost_Logger::info('WooBoost OpenAI client loaded');
+        }
+    }
+    
+    /**
+     * Load process modules
+     */
+    private function load_process_modules() {
+        WooBoost_Logger::info('WooBoost_Core: Loading process modules');
+        
+        // Load REST API controller
+        if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/process/class-wooboost-rest.php')) {
+            require_once WOOBOOST_PLUGIN_DIR . 'includes/process/class-wooboost-rest.php';
+            new WooBoost_REST();
+            WooBoost_Logger::info('WooBoost_Core: REST API controller loaded and instantiated');
+        } else {
+            WooBoost_Logger::error('WooBoost_Core: REST API controller file not found');
+        }
     }
 }
 
