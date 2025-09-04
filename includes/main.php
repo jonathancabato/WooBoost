@@ -69,9 +69,16 @@ class WooBoost_Core {
      * Load core modules
      */
     private function load_core_modules() {
+        // Load Logger first
+        if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/core/class-wooboost-logger.php')) {
+            require_once WOOBOOST_PLUGIN_DIR . 'includes/core/class-wooboost-logger.php';
+            WooBoost_Logger::info('WooBoost Logger initialized');
+        }
+        
         // Load OpenAI client
         if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/core/class-wooboost-openai.php')) {
             require_once WOOBOOST_PLUGIN_DIR . 'includes/core/class-wooboost-openai.php';
+            WooBoost_Logger::info('WooBoost OpenAI client loaded');
         }
     }
     
@@ -79,10 +86,15 @@ class WooBoost_Core {
      * Load process modules
      */
     private function load_process_modules() {
+        WooBoost_Logger::info('WooBoost_Core: Loading process modules');
+        
         // Load REST API controller
         if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/process/class-wooboost-rest.php')) {
             require_once WOOBOOST_PLUGIN_DIR . 'includes/process/class-wooboost-rest.php';
             new WooBoost_REST();
+            WooBoost_Logger::info('WooBoost_Core: REST API controller loaded and instantiated');
+        } else {
+            WooBoost_Logger::error('WooBoost_Core: REST API controller file not found');
         }
     }
 }

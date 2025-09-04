@@ -234,20 +234,55 @@
             method = method || 'GET';
             data = data || {};
             
+            console.log('WooBoost: Making API call', {
+                endpoint: endpoint,
+                method: method,
+                data: data,
+                restUrl: this.config.restUrl,
+                nonce: this.config.nonce
+            });
+            
             var requestConfig = {
                 url: this.config.restUrl + endpoint,
                 method: method,
+                xhrFields: {
+                    withCredentials: true
+                },
                 beforeSend: function(xhr) {
+                    console.log('WooBoost: Setting request headers');
                     xhr.setRequestHeader('X-WooBoost-Nonce', WooBoostEditor.config.nonce);
+                    xhr.setRequestHeader('X-WP-Nonce', WooBoostEditor.config.nonce);
                 }
             };
             
             if (method === 'POST') {
                 requestConfig.data = JSON.stringify(data);
                 requestConfig.contentType = 'application/json';
+                console.log('WooBoost: POST request data', requestConfig.data);
             }
             
-            return $.ajax(requestConfig);
+            var ajaxPromise = $.ajax(requestConfig);
+            
+            ajaxPromise.done(function(response, textStatus, jqXHR) {
+                console.log('WooBoost: API call successful', {
+                    response: response,
+                    status: textStatus,
+                    headers: jqXHR.getAllResponseHeaders()
+                });
+            });
+            
+            ajaxPromise.fail(function(jqXHR, textStatus, errorThrown) {
+                console.error('WooBoost: API call failed', {
+                    status: jqXHR.status,
+                    statusText: jqXHR.statusText,
+                    responseText: jqXHR.responseText,
+                    textStatus: textStatus,
+                    errorThrown: errorThrown,
+                    headers: jqXHR.getAllResponseHeaders()
+                });
+            });
+            
+            return ajaxPromise;
         },
         
         /**

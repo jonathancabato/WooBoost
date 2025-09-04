@@ -62,7 +62,7 @@ class WooBoost_Frontend {
             'wooboostEditor',
             array(
                 'restUrl'    => rest_url('wooboost/v1'),
-                'nonce'      => wp_create_nonce('wooboost'),
+                'nonce'      => wp_create_nonce('wp_rest'),
                 'hideButton' => $this->get_user_hide_button_preference(),
                 'strings'    => array(
                     'generateDescription' => __('Generate description with WooBoost', 'wooboost'),
