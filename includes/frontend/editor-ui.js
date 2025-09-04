@@ -34,6 +34,16 @@
         },
         
         /**
+         * Editor state tracking - Step 7
+         */
+        editorState: {
+            type: null, // 'tinymce', 'block', 'textarea'
+            isReady: false,
+            contentField: null,
+            excerptField: null
+        },
+        
+        /**
          * DOM elements
          */
         elements: {
@@ -89,7 +99,7 @@
         },
         
         /**
-         * Detect the product description editor container
+         * Detect the product description editor container - Enhanced for Step 7
          */
         detectEditor: function() {
             // Try multiple selectors for different editor types
@@ -111,11 +121,94 @@
                 if ($container.length > 0) {
                     this.elements.editorContainer = $container.first();
                     console.log('WooBoost: Found editor container using selector:', selectors[i]);
+                    
+                    // Determine and store editor type - Step 7
+                    this.determineEditorType();
+                    
                     return true;
                 }
             }
             
             return false;
+        },
+        
+        /**
+         * Determine the active editor type and store state - Step 7
+         */
+        determineEditorType: function() {
+            // Reset state
+            this.editorState = {
+                type: null,
+                isReady: false,
+                contentField: null,
+                excerptField: null
+            };
+            
+            // Check for Block Editor (Gutenberg)
+            if (typeof wp !== 'undefined' && wp.data && wp.blocks && 
+                (document.body.classList.contains('block-editor-page') || 
+                 $('.block-editor-writing-flow').length > 0)) {
+                this.editorState.type = 'block';
+                this.editorState.isReady = true;
+                console.log('WooBoost: Detected Block Editor (Gutenberg)');
+            }
+            // Check for TinyMCE Editor
+            else if (typeof tinyMCE !== 'undefined' && 
+                     ($('#wp-content-wrap').length > 0 || $('#postdivrich').length > 0)) {
+                this.editorState.type = 'tinymce';
+                // TinyMCE might not be ready yet, check if initialized
+                if (tinyMCE.get('content')) {
+                    this.editorState.isReady = true;
+                    console.log('WooBoost: Detected TinyMCE Editor (ready)');
+                } else {
+                    console.log('WooBoost: Detected TinyMCE Editor (initializing...)');
+                    // Wait for TinyMCE to initialize
+                    this.waitForTinyMCE();
+                }
+            }
+            // Fallback to textarea
+            else if ($('#content').length > 0) {
+                this.editorState.type = 'textarea';
+                this.editorState.isReady = true;
+                this.editorState.contentField = $('#content');
+                console.log('WooBoost: Detected basic textarea editor');
+            }
+            
+            // Always check for excerpt field
+            if ($('#excerpt').length > 0) {
+                this.editorState.excerptField = $('#excerpt');
+                console.log('WooBoost: Found excerpt field');
+            }
+        },
+        
+        /**
+         * Wait for TinyMCE to initialize - Step 7
+         */
+        waitForTinyMCE: function() {
+            var self = this;
+            var attempts = 0;
+            var maxAttempts = 50; // 5 seconds
+            
+            function checkTinyMCE() {
+                attempts++;
+                
+                if (typeof tinyMCE !== 'undefined' && tinyMCE.get('content')) {
+                    self.editorState.isReady = true;
+                    console.log('WooBoost: TinyMCE is now ready');
+                    return;
+                }
+                
+                if (attempts < maxAttempts) {
+                    setTimeout(checkTinyMCE, 100);
+                } else {
+                    console.log('WooBoost: TinyMCE initialization timeout, falling back to textarea');
+                    self.editorState.type = 'textarea';
+                    self.editorState.isReady = true;
+                    self.editorState.contentField = $('#content');
+                }
+            }
+            
+            checkTinyMCE();
         },
         
         /**
@@ -658,13 +751,404 @@
         },
         
         /**
-         * Use generated content - Step 6 (placeholder for Step 7)
+         * Use generated content - Step 7: Content insertion into WordPress editors
          */
         useGeneratedContent: function(data) {
-            // Step 7 will implement the actual editor insertion
-            // For now, just show a message and close modal
-            alert('Step 6 Complete! Content generated successfully.\n\nStep 7 will implement inserting this content into the product editor.\n\nGenerated content:\n- Excerpt: ' + data.excerpt + '\n- Description: ' + data.description);
-            this.hideModal();
+            var self = this;
+            
+            // Show confirmation dialog before inserting content
+            this.showInsertionConfirmation(data, function() {
+                try {
+                    var insertionResults = self.insertContentIntoEditors(data);
+                    
+                    if (insertionResults.success) {
+                        // Show success message
+                        self.showInsertionSuccess(insertionResults);
+                        self.hideModal();
+                    } else {
+                        // Show error message
+                        self.showInsertionError(insertionResults.errors);
+                    }
+                } catch (error) {
+                    console.error('WooBoost: Error inserting content:', error);
+                    self.showInsertionError(['An unexpected error occurred while inserting content. Please try again.']);
+                }
+            });
+        },
+        
+        /**
+         * Show confirmation dialog for content insertion - Step 7
+         */
+        showInsertionConfirmation: function(data, callback) {
+            var hasExistingContent = this.checkForExistingContent();
+            
+            if (hasExistingContent) {
+                var message = 'This will replace the existing content in your product editor. Are you sure you want to continue?';
+                
+                if (confirm(message)) {
+                    callback();
+                }
+            } else {
+                // No existing content, proceed directly
+                callback();
+            }
+        },
+        
+        /**
+         * Check if there's existing content that would be replaced - Step 7
+         */
+        checkForExistingContent: function() {
+            // Check main content field
+            var $content = $('#content');
+            if ($content.length && $content.val().trim().length > 0) {
+                return true;
+            }
+            
+            // Check TinyMCE if available
+            if (typeof tinyMCE !== 'undefined' && tinyMCE.get('content')) {
+                var editor = tinyMCE.get('content');
+                if (editor && editor.getContent().trim().length > 0) {
+                    return true;
+                }
+            }
+            
+            // Check Block Editor if available
+            if (typeof wp !== 'undefined' && wp.data) {
+                try {
+                    var editor = wp.data.select('core/editor');
+                    if (editor) {
+                        var blocks = editor.getBlocks();
+                        if (blocks && blocks.length > 0) {
+                            // Check if any block has meaningful content
+                            for (var i = 0; i < blocks.length; i++) {
+                                if (blocks[i].attributes && 
+                                    Object.keys(blocks[i].attributes).length > 0) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Ignore errors, assume no content
+                }
+            }
+            
+            return false;
+        },
+        
+        /**
+         * Insert content into appropriate WordPress editors - Step 7
+         */
+        insertContentIntoEditors: function(data) {
+            var results = {
+                success: false,
+                inserted: [],
+                errors: []
+            };
+            
+            // Insert description into main content editor
+            if (data.description) {
+                var descriptionResult = this.insertIntoMainEditor(data.description);
+                if (descriptionResult.success) {
+                    results.inserted.push('Product description');
+                } else {
+                    results.errors.push('Failed to insert description: ' + descriptionResult.error);
+                }
+            }
+            
+            // Insert excerpt into excerpt field
+            if (data.excerpt) {
+                var excerptResult = this.insertIntoExcerptField(data.excerpt);
+                if (excerptResult.success) {
+                    results.inserted.push('Product excerpt');
+                } else {
+                    results.errors.push('Failed to insert excerpt: ' + excerptResult.error);
+                }
+            }
+            
+            // Consider it successful if at least one insertion worked
+            results.success = results.inserted.length > 0;
+            
+            return results;
+        },
+        
+        /**
+         * Insert content into the main content editor - Enhanced Step 7
+         */
+        insertIntoMainEditor: function(content) {
+            // Check if we have detected editor state
+            if (!this.editorState.type) {
+                this.determineEditorType();
+            }
+            
+            // Use detected editor type for more reliable insertion
+            switch (this.editorState.type) {
+                case 'block':
+                    return this.insertIntoBlockEditor(content);
+                case 'tinymce':
+                    return this.insertIntoTinyMCE(content);
+                case 'textarea':
+                    return this.insertIntoTextarea(content);
+                default:
+                    return this.insertIntoEditorFallback(content);
+            }
+        },
+        
+        /**
+         * Insert content into Block Editor (Gutenberg) - Step 7
+         */
+        insertIntoBlockEditor: function(content) {
+            try {
+                if (typeof wp === 'undefined' || !wp.data || !wp.blocks) {
+                    throw new Error('Block Editor API not available');
+                }
+                
+                var editor = wp.data.select('core/editor');
+                if (!editor || typeof wp.data.dispatch !== 'function') {
+                    throw new Error('Block Editor not ready');
+                }
+                
+                // Convert content to blocks
+                var blocks;
+                if (content.indexOf('<') !== -1) {
+                    // Rich text content - convert HTML to blocks
+                    blocks = wp.blocks.parse(content);
+                } else {
+                    // Plain text - create paragraph block
+                    blocks = [wp.blocks.createBlock('core/paragraph', { content: content })];
+                }
+                
+                wp.data.dispatch('core/editor').resetBlocks(blocks);
+                return { success: true, method: 'Block Editor' };
+                
+            } catch (e) {
+                console.warn('WooBoost: Block Editor insertion failed:', e);
+                return { success: false, error: e.message };
+            }
+        },
+        
+        /**
+         * Insert content into TinyMCE Editor - Step 7
+         */
+        insertIntoTinyMCE: function(content) {
+            try {
+                if (typeof tinyMCE === 'undefined') {
+                    throw new Error('TinyMCE not available');
+                }
+                
+                var editor = tinyMCE.get('content');
+                if (!editor) {
+                    throw new Error('TinyMCE editor not found');
+                }
+                
+                if (editor.isHidden()) {
+                    // Editor is in text mode, insert into textarea
+                    var $textarea = $('#content');
+                    if ($textarea.length) {
+                        $textarea.val(content);
+                        $textarea.trigger('change');
+                        return { success: true, method: 'TinyMCE (Text Mode)' };
+                    } else {
+                        throw new Error('Content textarea not found');
+                    }
+                } else {
+                    // Editor is in visual mode
+                    editor.setContent(content);
+                    editor.save(); // Save to underlying textarea
+                    return { success: true, method: 'TinyMCE (Visual Mode)' };
+                }
+                
+            } catch (e) {
+                console.warn('WooBoost: TinyMCE insertion failed:', e);
+                return { success: false, error: e.message };
+            }
+        },
+        
+        /**
+         * Insert content into basic textarea - Step 7
+         */
+        insertIntoTextarea: function(content) {
+            try {
+                var $contentField = this.editorState.contentField || $('#content');
+                if (!$contentField || !$contentField.length) {
+                    throw new Error('Content textarea not found');
+                }
+                
+                $contentField.val(content);
+                $contentField.trigger('change');
+                return { success: true, method: 'Textarea' };
+                
+            } catch (e) {
+                console.warn('WooBoost: Textarea insertion failed:', e);
+                return { success: false, error: e.message };
+            }
+        },
+        
+        /**
+         * Fallback content insertion method - Step 7
+         */
+        insertIntoEditorFallback: function(content) {
+            // Try all methods in sequence until one works
+            var methods = [
+                { name: 'TinyMCE', func: this.insertIntoTinyMCE.bind(this) },
+                { name: 'Block Editor', func: this.insertIntoBlockEditor.bind(this) },
+                { name: 'Textarea', func: this.insertIntoTextarea.bind(this) }
+            ];
+            
+            for (var i = 0; i < methods.length; i++) {
+                var result = methods[i].func(content);
+                if (result.success) {
+                    return result;
+                }
+            }
+            
+            return { 
+                success: false, 
+                error: 'No compatible editor found. Please ensure you are on a product edit page.' 
+            };
+        },
+        
+        /**
+         * Insert content into excerpt field - Enhanced Step 7
+         */
+        insertIntoExcerptField: function(excerpt) {
+            // Use cached excerpt field if available
+            var $excerptField = this.editorState.excerptField || $('#excerpt');
+            
+            if (!$excerptField || !$excerptField.length) {
+                return { 
+                    success: false, 
+                    error: 'Excerpt field not found. You may need to enable it in Screen Options.' 
+                };
+            }
+            
+            try {
+                $excerptField.val(excerpt);
+                $excerptField.trigger('change');
+                
+                // Visual feedback - briefly highlight the field
+                this.highlightField($excerptField);
+                
+                return { success: true, method: 'Textarea' };
+            } catch (e) {
+                return { 
+                    success: false, 
+                    error: 'Failed to insert into excerpt field: ' + e.message 
+                };
+            }
+        },
+        
+        /**
+         * Provide visual feedback by highlighting a field - Step 7
+         */
+        highlightField: function($field) {
+            if (!$field || !$field.length) return;
+            
+            var originalBg = $field.css('background-color');
+            $field.css('background-color', '#d1edff');
+            
+            setTimeout(function() {
+                $field.css('background-color', originalBg);
+            }, 1000);
+        },
+        
+        /**
+         * Show successful insertion feedback - Enhanced Step 7
+         */
+        showInsertionSuccess: function(results) {
+            var message = 'Content successfully inserted!';
+            if (results.inserted.length > 0) {
+                message += '\n\nInserted: ' + results.inserted.join(', ');
+            }
+            
+            // Provide visual feedback on the inserted fields
+            this.highlightInsertedContent();
+            
+            // Show WordPress-style admin notice
+            this.showAdminNotice(message, 'success');
+        },
+        
+        /**
+         * Highlight inserted content fields - Step 7
+         */
+        highlightInsertedContent: function() {
+            // Highlight the main content editor area
+            var $contentArea;
+            
+            switch (this.editorState.type) {
+                case 'tinymce':
+                    $contentArea = $('#wp-content-wrap');
+                    break;
+                case 'block':
+                    $contentArea = $('.block-editor-writing-flow');
+                    break;
+                case 'textarea':
+                default:
+                    $contentArea = $('#content');
+                    break;
+            }
+            
+            if ($contentArea && $contentArea.length) {
+                this.highlightField($contentArea);
+            }
+            
+            // Highlight excerpt field if it exists
+            if (this.editorState.excerptField) {
+                this.highlightField(this.editorState.excerptField);
+            }
+        },
+        
+        /**
+         * Show insertion error feedback - Step 7
+         */
+        showInsertionError: function(errors) {
+            var message = 'Failed to insert content:';
+            if (errors.length > 0) {
+                message += '\n\n• ' + errors.join('\n• ');
+            }
+            
+            // Show WordPress-style admin notice
+            this.showAdminNotice(message, 'error');
+        },
+        
+        /**
+         * Show WordPress-style admin notice - Step 7
+         */
+        showAdminNotice: function(message, type) {
+            type = type || 'info';
+            
+            var noticeClass = 'notice notice-' + type;
+            if (type === 'success') {
+                noticeClass += ' is-dismissible';
+            }
+            
+            var $notice = $('<div class="' + noticeClass + '" style="margin: 20px 0;"><p><strong>WooBoost:</strong> ' + 
+                          message.replace(/\n/g, '<br>') + '</p></div>');
+            
+            // Insert notice after the first .wrap or at top of content
+            var $target = $('.wrap').first();
+            if (!$target.length) {
+                $target = $('#wpbody-content').first();
+            }
+            
+            if ($target.length) {
+                $target.after($notice);
+                
+                // Auto-remove success notices after 5 seconds
+                if (type === 'success') {
+                    setTimeout(function() {
+                        $notice.fadeOut(300, function() {
+                            $notice.remove();
+                        });
+                    }, 5000);
+                }
+                
+                // Scroll notice into view
+                $notice[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+                // Fallback to alert if we can't find a good place for the notice
+                alert('WooBoost: ' + message.replace(/<br>/g, '\n'));
+            }
         },
         
         /**
