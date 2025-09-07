@@ -35,24 +35,16 @@ class WooBoost_REST extends WP_REST_Controller {
      * Constructor
      */
     public function __construct() {
-        WooBoost_Logger::info('WooBoost_REST: Constructor called');
         $this->openai = new WooBoost_OpenAI();
         add_action('rest_api_init', array($this, 'register_routes'));
-        
-        // Add hook to catch all REST requests
-        add_action('rest_request_before_callbacks', array($this, 'log_rest_request'), 10, 3);
-        
-        WooBoost_Logger::info('WooBoost_REST: Constructor completed, hooks added');
     }
     
     /**
      * Register REST API routes
      */
     public function register_routes() {
-        WooBoost_Logger::info('WooBoost_REST: Registering routes');
-        
         // Models endpoint
-        $models_registered = register_rest_route($this->namespace, '/models', array(
+        register_rest_route($this->namespace, '/models', array(
             array(
                 'methods'             => WP_REST_Server::READABLE,
                 'callback'            => array($this, 'get_models'),
@@ -61,10 +53,8 @@ class WooBoost_REST extends WP_REST_Controller {
             ),
         ));
         
-        WooBoost_Logger::info('WooBoost_REST: Models route registered', array('success' => $models_registered));
-        
         // Generate content endpoint
-        $generate_registered = register_rest_route($this->namespace, '/generate', array(
+        register_rest_route($this->namespace, '/generate', array(
             array(
                 'methods'             => WP_REST_Server::CREATABLE,
                 'callback'            => array($this, 'generate_content'),
@@ -73,10 +63,8 @@ class WooBoost_REST extends WP_REST_Controller {
             ),
         ));
         
-        WooBoost_Logger::info('WooBoost_REST: Generate route registered', array('success' => $generate_registered));
-        
         // Debug logs endpoint
-        $debug_registered = register_rest_route($this->namespace, '/debug-logs', array(
+        register_rest_route($this->namespace, '/debug-logs', array(
             array(
                 'methods'             => WP_REST_Server::READABLE,
                 'callback'            => array($this, 'get_debug_logs'),
@@ -84,29 +72,6 @@ class WooBoost_REST extends WP_REST_Controller {
                 'args'                => array(),
             ),
         ));
-        
-        WooBoost_Logger::info('WooBoost_REST: Debug logs route registered', array('success' => $debug_registered));
-        WooBoost_Logger::info('WooBoost_REST: All routes registration completed');
-    }
-    
-    /**
-     * Log REST API requests for debugging
-     * 
-     * @param mixed $response Response object.
-     * @param array $handler Route handler.
-     * @param WP_REST_Request $request Request object.
-     */
-    public function log_rest_request($response, $handler, $request) {
-        // Only log our endpoints
-        if (strpos($request->get_route(), '/wooboost/v1') !== false) {
-            WooBoost_Logger::info('WooBoost_REST: Incoming REST request', array(
-                'route' => $request->get_route(),
-                'method' => $request->get_method(),
-                'params' => $request->get_params(),
-                'headers' => $request->get_headers(),
-                'user_id' => get_current_user_id()
-            ));
-        }
     }
     
     /**
@@ -116,20 +81,6 @@ class WooBoost_REST extends WP_REST_Controller {
      * @return bool|WP_Error True if the request has permission, WP_Error otherwise.
      */
     public function check_permissions($request) {
-        WooBoost_Logger::info('WooBoost_REST: check_permissions called');
-        
-        // Debug logging
-        $user_id = get_current_user_id();
-        $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : 'N/A';
-        
-        WooBoost_Logger::info('WooBoost_REST: Permission check details', array(
-            'user_id' => $user_id,
-            'request_uri' => $request_uri,
-            'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'N/A',
-            'method' => $request->get_method(),
-            'headers' => $request->get_headers()
-        ));
-        
         // Check nonce - use standard WordPress REST nonce
         $nonce = $request->get_header('X-WP-Nonce');
         if (!$nonce) {
@@ -137,14 +88,7 @@ class WooBoost_REST extends WP_REST_Controller {
             $nonce = $request->get_header('X-WooBoost-Nonce');
         }
         
-        WooBoost_Logger::info('WooBoost_REST: Nonce check', array(
-            'received_nonce' => $nonce,
-            'nonce_from_x_wp' => $request->get_header('X-WP-Nonce'),
-            'nonce_from_x_wooboost' => $request->get_header('X-WooBoost-Nonce')
-        ));
-        
         if (!$nonce) {
-            WooBoost_Logger::error('WooBoost_REST: No nonce provided');
             return new WP_Error(
                 'rest_forbidden',
                 __('No nonce provided.', 'wooboost'),
@@ -154,18 +98,8 @@ class WooBoost_REST extends WP_REST_Controller {
         
         // Try wp_rest nonce first, then custom nonce
         $nonce_valid = wp_verify_nonce($nonce, 'wp_rest') || wp_verify_nonce($nonce, 'wooboost');
-        WooBoost_Logger::info('WooBoost_REST: Nonce validation', array(
-            'nonce' => $nonce,
-            'wp_rest_valid' => wp_verify_nonce($nonce, 'wp_rest'),
-            'wooboost_valid' => wp_verify_nonce($nonce, 'wooboost'),
-            'overall_valid' => $nonce_valid
-        ));
         
         if (!$nonce_valid) {
-            WooBoost_Logger::error('WooBoost_REST: Invalid nonce', array(
-                'nonce' => $nonce,
-                'user_id' => $user_id
-            ));
             return new WP_Error(
                 'rest_forbidden',
                 __('Invalid nonce.', 'wooboost'),
@@ -174,16 +108,7 @@ class WooBoost_REST extends WP_REST_Controller {
         }
         
         // Check capability
-        $can_edit = current_user_can('edit_products');
-        WooBoost_Logger::info('WooBoost_REST: Capability check', array(
-            'user_id' => $user_id,
-            'can_edit_products' => $can_edit
-        ));
-        
-        if (!$can_edit) {
-            WooBoost_Logger::error('WooBoost_REST: User cannot edit products', array(
-                'user_id' => $user_id
-            ));
+        if (!current_user_can('edit_products')) {
             return new WP_Error(
                 'rest_forbidden',
                 __('You do not have permission to edit products.', 'wooboost'),
@@ -191,7 +116,6 @@ class WooBoost_REST extends WP_REST_Controller {
             );
         }
         
-        WooBoost_Logger::info('WooBoost_REST: All permission checks passed');
         return true;
     }
     
@@ -221,14 +145,7 @@ class WooBoost_REST extends WP_REST_Controller {
      * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
      */
     public function generate_content($request) {
-        WooBoost_Logger::info('WooBoost_REST: generate_content called');
-        
         $params = $request->get_params();
-        WooBoost_Logger::info('WooBoost_REST: Request parameters', array(
-            'params' => $params,
-            'method' => $request->get_method(),
-            'content_type' => $request->get_content_type()
-        ));
         
         // Sanitize parameters
         $options = array(
@@ -240,14 +157,12 @@ class WooBoost_REST extends WP_REST_Controller {
             'product_data' => $this->sanitize_product_data($params['product_data'] ?? array())
         );
         
-        WooBoost_Logger::info('WooBoost_REST: Sanitized options', array('options' => $options));
-        
         $content = $this->openai->generate_content($options);
         
         if (is_wp_error($content)) {
             return $content;
         }
-        
+
         return rest_ensure_response(array(
             'success' => true,
             'data'    => $content
@@ -287,7 +202,7 @@ class WooBoost_REST extends WP_REST_Controller {
             'format' => array(
                 'description' => __('Output format', 'wooboost'),
                 'type'        => 'string',
-                'enum'        => array('Plain text', 'Rich typography'),
+                'enum'        => array('Plain text', 'HTML (Simplified)', 'HTML (Detailed)'),
                 'default'     => 'Plain text',
             ),
             'product_data' => array(

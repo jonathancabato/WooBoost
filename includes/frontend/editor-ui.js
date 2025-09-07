@@ -516,7 +516,8 @@
                                     '<label class="wooboost-form-label" for="wooboost-format">Output Format</label>' +
                                     '<select class="wooboost-form-select" id="wooboost-format" name="format">' +
                                         '<option value="Plain text" selected>Plain text</option>' +
-                                        '<option value="Rich typography">Rich typography (Bold, italics)</option>' +
+                                        '<option value="HTML (Simplified)">HTML (Simplified) - Bold, italics</option>' +
+                                        '<option value="HTML (Detailed)">HTML (Detailed) - Headers, lists, structure</option>' +
                                     '</select>' +
                                     '<div class="wooboost-form-help">Choose how to format the generated content</div>' +
                                 '</div>' +
@@ -736,6 +737,11 @@
                 self.handleGenerateClick();
             });
             
+            // Format change handler to update content preview
+            $('#wooboost-format').on('change', function() {
+                self.updateContentPreviewFormat();
+            });
+            
             // Overlay click to close
             this.elements.modalOverlay.on('click', function(e) {
                 if (e.target === self.elements.modalOverlay[0]) {
@@ -873,21 +879,33 @@
         showGeneratedContent: function(data) {
             var $modalBody = this.elements.modal.find('.wooboost-modal-body');
             
+            // Get the selected format from the form
+            var selectedFormat = $('#wooboost-format').val() || 'Plain text';
+            var isHtmlFormat = selectedFormat === 'HTML (Simplified)' || selectedFormat === 'HTML (Detailed)';
+            
             // Create content preview section
             var contentHTML = '<div class="wooboost-generated-content">' +
                 '<h3 class="wooboost-form-section-title">Generated Content</h3>';
             
             if (data.excerpt) {
+                var excerptContent = isHtmlFormat ? this.sanitizeHtml(data.excerpt) : this.escapeHtml(data.excerpt);
+                
                 contentHTML += '<div class="wooboost-content-section">' +
                     '<h4>Product Excerpt:</h4>' +
-                    '<div class="wooboost-content-preview">' + this.escapeHtml(data.excerpt) + '</div>' +
+                    '<div class="wooboost-content-preview" data-content-type="' + (isHtmlFormat ? 'html' : 'text') + '">' + 
+                    excerptContent + 
+                    '</div>' +
                 '</div>';
             }
             
             if (data.description) {
+                var descriptionContent = isHtmlFormat ? this.sanitizeHtml(data.description) : this.escapeHtml(data.description);
+                
                 contentHTML += '<div class="wooboost-content-section">' +
                     '<h4>Product Description:</h4>' +
-                    '<div class="wooboost-content-preview">' + this.escapeHtml(data.description) + '</div>' +
+                    '<div class="wooboost-content-preview" data-content-type="' + (isHtmlFormat ? 'html' : 'text') + '">' + 
+                    descriptionContent + 
+                    '</div>' +
                 '</div>';
             }
             
@@ -917,6 +935,51 @@
             
             // Scroll to generated content
             $('.wooboost-generated-content')[0].scrollIntoView({ behavior: 'smooth' });
+        },
+
+        /**
+         * Update content preview format when user changes the format selection
+         */
+        updateContentPreviewFormat: function() {
+            var selectedFormat = $('#wooboost-format').val() || 'Plain text';
+            var isHtmlFormat = selectedFormat === 'HTML (Simplified)' || selectedFormat === 'HTML (Detailed)';
+            
+            // Find all content preview elements that have generated content
+            var $previews = $('.wooboost-content-preview[data-content-type]');
+            
+            if ($previews.length === 0) {
+                return; // No generated content to update
+            }
+            
+            var self = this;
+            $previews.each(function() {
+                var $preview = $(this);
+                var currentType = $preview.attr('data-content-type');
+                
+                // Get the raw content stored in the lastGeneratedData
+                var rawContent = null;
+                if (self.modalState.lastGeneratedData) {
+                    // Determine if this is excerpt or description based on the section title
+                    var sectionTitle = $preview.closest('.wooboost-content-section').find('h4').text();
+                    if (sectionTitle.indexOf('Excerpt') !== -1) {
+                        rawContent = self.modalState.lastGeneratedData.excerpt;
+                    } else if (sectionTitle.indexOf('Description') !== -1) {
+                        rawContent = self.modalState.lastGeneratedData.description;
+                    }
+                }
+                
+                if (rawContent) {
+                    // Update content type attribute
+                    $preview.attr('data-content-type', isHtmlFormat ? 'html' : 'text');
+                    
+                    // Update content based on format selection
+                    if (isHtmlFormat) {
+                        $preview.html(self.sanitizeHtml(rawContent));
+                    } else {
+                        $preview.text(rawContent);
+                    }
+                }
+            });
         },
         
         /**
@@ -1499,6 +1562,125 @@
             var div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        },
+
+        /**
+         * Sanitize HTML content to prevent XSS attacks
+         * Uses a whitelist approach for allowed tags and attributes
+         */
+        sanitizeHtml: function(html) {
+            if (!html || typeof html !== 'string') {
+                return '';
+            }
+
+            // Normalize whitespace and clean up the HTML first
+            var cleanedHtml = html
+                .replace(/\s+/g, ' ')  // Replace multiple whitespace with single space
+                .replace(/>\s+</g, '><')  // Remove spaces between tags
+                .trim();
+
+            // Create a temporary container
+            var container = document.createElement('div');
+            container.innerHTML = cleanedHtml;
+
+            // Define allowed tags and their allowed attributes
+            var allowedTags = {
+                'p': [],
+                'br': [],
+                'b': [],
+                'strong': [],
+                'i': [],
+                'em': [],
+                'u': [],
+                'h1': [],
+                'h2': [],
+                'h3': [],
+                'h4': [],
+                'h5': [],
+                'h6': [],
+                'ul': [],
+                'ol': [],
+                'li': [],
+                'a': ['href', 'rel', 'target'],
+                'img': ['src', 'alt', 'width', 'height']
+            };
+
+            // Helper function to recursively clean nodes
+            var cleanNode = function(node) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    return node;
+                }
+
+                if (node.nodeType !== Node.ELEMENT_NODE) {
+                    return null;
+                }
+
+                var tagName = node.tagName.toLowerCase();
+                
+                // Check if tag is allowed
+                if (!allowedTags.hasOwnProperty(tagName)) {
+                    // For disallowed tags, preserve their text content
+                    var textNode = document.createTextNode(node.textContent || '');
+                    return textNode;
+                }
+
+                // Create new clean element
+                var cleanElement = document.createElement(tagName);
+                var allowedAttrs = allowedTags[tagName];
+
+                // Copy allowed attributes
+                for (var i = 0; i < node.attributes.length; i++) {
+                    var attr = node.attributes[i];
+                    var attrName = attr.name.toLowerCase();
+                    
+                    if (allowedAttrs.indexOf(attrName) !== -1) {
+                        var attrValue = attr.value;
+                        
+                        // Additional validation for specific attributes
+                        if (attrName === 'href') {
+                            // Only allow http, https, and mailto links
+                            if (/^(https?:|mailto:|#)/.test(attrValue)) {
+                                cleanElement.setAttribute(attrName, attrValue);
+                            }
+                        } else if (attrName === 'src') {
+                            // Only allow http and https for images
+                            if (/^https?:/.test(attrValue)) {
+                                cleanElement.setAttribute(attrName, attrValue);
+                            }
+                        } else if (attrName === 'target') {
+                            // Only allow _blank
+                            if (attrValue === '_blank') {
+                                cleanElement.setAttribute(attrName, attrValue);
+                                // Always add rel="noopener noreferrer" for security
+                                cleanElement.setAttribute('rel', 'noopener noreferrer');
+                            }
+                        } else {
+                            cleanElement.setAttribute(attrName, attrValue);
+                        }
+                    }
+                }
+
+                // Recursively clean child nodes
+                for (var j = 0; j < node.childNodes.length; j++) {
+                    var cleanChild = cleanNode(node.childNodes[j]);
+                    if (cleanChild) {
+                        cleanElement.appendChild(cleanChild);
+                    }
+                }
+
+                return cleanElement;
+            };
+
+            // Clean all child nodes
+            var cleanContainer = document.createElement('div');
+            for (var i = 0; i < container.childNodes.length; i++) {
+                var cleanChild = cleanNode(container.childNodes[i]);
+                if (cleanChild) {
+                    cleanContainer.appendChild(cleanChild);
+                }
+            }
+
+            return cleanContainer.innerHTML;
         },
         
         /**

@@ -1005,6 +1005,110 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
+/* Reset white-space for HTML content to allow proper rendering */
+.wooboost-content-preview[data-content-type="html"] {
+    white-space: normal;
+}
+
+/* Styling for HTML elements within the content preview */
+.wooboost-content-preview p {
+    margin: 0 0 12px 0;
+}
+
+.wooboost-content-preview p:last-child {
+    margin-bottom: 0;
+}
+
+.wooboost-content-preview h1,
+.wooboost-content-preview h2,
+.wooboost-content-preview h3,
+.wooboost-content-preview h4,
+.wooboost-content-preview h5,
+.wooboost-content-preview h6 {
+    margin: 0 0 12px 0;
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.3;
+}
+
+.wooboost-content-preview h1 {
+    font-size: 1.5em;
+}
+
+.wooboost-content-preview h2 {
+    font-size: 1.3em;
+}
+
+.wooboost-content-preview h3 {
+    font-size: 1.2em;
+}
+
+.wooboost-content-preview h4 {
+    font-size: 1.1em;
+}
+
+.wooboost-content-preview h5 {
+    font-size: 1.05em;
+}
+
+.wooboost-content-preview h6 {
+    font-size: 1em;
+}
+
+.wooboost-content-preview h1:last-child,
+.wooboost-content-preview h2:last-child,
+.wooboost-content-preview h3:last-child,
+.wooboost-content-preview h4:last-child,
+.wooboost-content-preview h5:last-child,
+.wooboost-content-preview h6:last-child {
+    margin-bottom: 0;
+}
+
+.wooboost-content-preview ul,
+.wooboost-content-preview ol {
+    margin: 0 0 12px 0;
+    padding-left: 20px;
+}
+
+.wooboost-content-preview li {
+    margin-bottom: 4px;
+}
+
+.wooboost-content-preview li:last-child {
+    margin-bottom: 0;
+}
+
+.wooboost-content-preview b,
+.wooboost-content-preview strong {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.wooboost-content-preview i,
+.wooboost-content-preview em {
+    font-style: italic;
+}
+
+.wooboost-content-preview u {
+    text-decoration: underline;
+}
+
+.wooboost-content-preview a {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+.wooboost-content-preview a:hover {
+    color: #1d4ed8;
+}
+
+.wooboost-content-preview img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 8px 0;
+}
+
 .wooboost-content-preview::-webkit-scrollbar {
     width: 6px;
 }
