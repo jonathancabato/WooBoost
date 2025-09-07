@@ -538,10 +538,10 @@
                         '</form>' +
                     '</div>' +
                     '<div class="wooboost-modal-footer">' +
-                        '<button type="button" class="wooboost-btn wooboost-btn-secondary" id="wooboost-cancel-btn">Cancel</button>' +
                         '<button type="button" class="wooboost-btn wooboost-btn-primary" id="wooboost-generate-btn">' +
                             '<span class="wooboost-btn-text">Generate Content</span>' +
                         '</button>' +
+                        '<button type="button" class="wooboost-btn wooboost-btn-secondary" id="wooboost-cancel-btn">Cancel</button>' +
                     '</div>' +
                 '</div>' +
             '</div>';
@@ -893,8 +893,8 @@
             
             // Add action buttons for Step 7
             contentHTML += '<div class="wooboost-content-actions">' +
-                '<button type="button" class="wooboost-btn wooboost-btn-secondary" id="wooboost-regenerate-btn">Regenerate</button>' +
                 '<button type="button" class="wooboost-btn wooboost-btn-primary" id="wooboost-use-content-btn">Use This Content</button>' +
+                '<button type="button" class="wooboost-btn wooboost-btn-secondary" id="wooboost-regenerate-btn">Regenerate</button>' +
             '</div>';
             
             contentHTML += '</div>';
