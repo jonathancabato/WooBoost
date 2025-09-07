@@ -53,6 +53,42 @@
             modal: null,
             modalOverlay: null
         },
+
+        /**
+         * Modal state tracking for improved UX
+         */
+        modalState: {
+            current: 'idle', // 'idle', 'loading', 'generated'
+            lastGeneratedData: null
+        },
+
+        /**
+         * API request management
+         */
+        apiRequestManager: {
+            currentRequestId: null,
+            restartTimer: null,
+            
+            generateRequestId: function() {
+                return 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            },
+            
+            setCurrentRequest: function(requestId) {
+                this.currentRequestId = requestId;
+            },
+            
+            isValidRequest: function(requestId) {
+                return this.currentRequestId === requestId;
+            },
+            
+            invalidateCurrentRequest: function() {
+                this.currentRequestId = null;
+                if (this.restartTimer) {
+                    clearTimeout(this.restartTimer);
+                    this.restartTimer = null;
+                }
+            }
+        },
         
         /**
          * Initialize the editor functionality
@@ -527,6 +563,9 @@
         showModal: function() {
             this.elements.modalOverlay.addClass('active');
             
+            // Reset modal state when opening
+            this.setModalState('idle');
+            
             // Focus management
             this.elements.modal.find('#wooboost-model').focus();
             
@@ -537,6 +576,125 @@
             if (!$('#wooboost-modal-style').length) {
                 $('<style id="wooboost-modal-style">.wooboost-modal-open { overflow: hidden; }</style>').appendTo('head');
             }
+        },
+
+        /**
+         * Set modal state and update UI accordingly
+         */
+        setModalState: function(newState) {
+            console.log('WooBoost: Setting modal state to:', newState);
+            this.modalState.current = newState;
+            this.updateUIForState();
+        },
+
+        /**
+         * Update UI elements based on current modal state
+         */
+        updateUIForState: function() {
+            var $modal = this.elements.modal;
+            var $contentOptions = $modal.find('.wooboost-form-section').first();
+            var $modalFooter = $modal.find('.wooboost-modal-footer');
+            var $generatedContent = $modal.find('.wooboost-generated-content');
+            var $loadingState = $modal.find('.wooboost-loading-state');
+
+            // Reset all states
+            $contentOptions.show();
+            $modalFooter.show();
+            $generatedContent.hide();
+            $loadingState.remove();
+
+            switch (this.modalState.current) {
+                case 'idle':
+                    // Show Content Options and original buttons
+                    $contentOptions.show();
+                    $modalFooter.show();
+                    $generatedContent.remove();
+                    break;
+
+                case 'loading':
+                    // Hide Content Options and footer, show loading state
+                    $contentOptions.hide();
+                    $modalFooter.hide();
+                    this.showLoadingState();
+                    break;
+
+                case 'generated':
+                    // Hide Content Options and footer, show generated content
+                    $contentOptions.hide();
+                    $modalFooter.hide();
+                    // Generated content will be shown by showGeneratedContent method
+                    break;
+            }
+        },
+
+        /**
+         * Show loading state with spinner and cancel/restart options
+         */
+        showLoadingState: function() {
+            var $modalBody = this.elements.modal.find('.wooboost-modal-body');
+            
+            var loadingHTML = '<div class="wooboost-loading-state">' +
+                '<div class="wooboost-loading-content">' +
+                    '<div class="wooboost-loading-spinner-large"></div>' +
+                    '<div class="wooboost-loading-message">Generating content… please wait.</div>' +
+                    '<div class="wooboost-loading-actions">' +
+                        '<button type="button" class="wooboost-btn wooboost-btn-secondary wooboost-cancel-loading-btn" id="wooboost-cancel-loading-btn">Cancel</button>' +
+                        '<a href="#" class="wooboost-restart-link" id="wooboost-restart-link" style="display: none;">Stuck? Restart.</a>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+            
+            // Remove existing loading state if any
+            $modalBody.find('.wooboost-loading-state').remove();
+            
+            // Add loading state after the form
+            $modalBody.find('#wooboost-generation-form').after(loadingHTML);
+            
+            // Attach event handlers
+            var self = this;
+            
+            // Cancel button handler
+            $('#wooboost-cancel-loading-btn').on('click', function(e) {
+                e.preventDefault();
+                self.cancelGeneration();
+            });
+            
+            // Restart link handler
+            $('#wooboost-restart-link').on('click', function(e) {
+                e.preventDefault();
+                self.restartGeneration();
+            });
+            
+            // Show restart link after 20 seconds
+            this.apiRequestManager.restartTimer = setTimeout(function() {
+                $('#wooboost-restart-link').fadeIn(300);
+            }, 20000);
+        },
+
+        /**
+         * Cancel the current generation process
+         */
+        cancelGeneration: function() {
+            console.log('WooBoost: Cancelling generation process');
+            
+            // Invalidate current request to ignore any incoming response
+            this.apiRequestManager.invalidateCurrentRequest();
+            
+            // Reset to idle state
+            this.setModalState('idle');
+        },
+
+        /**
+         * Restart the generation process
+         */
+        restartGeneration: function() {
+            console.log('WooBoost: Restarting generation process');
+            
+            // Invalidate current request to ignore any incoming response
+            this.apiRequestManager.invalidateCurrentRequest();
+            
+            // Reset to idle state
+            this.setModalState('idle');
         },
         
         /**
@@ -613,8 +771,8 @@
             // Clear any previous errors
             this.clearErrors();
             
-            // Show loading state
-            this.setGenerateLoading(true);
+            // Set loading state (this will hide content options and show spinner)
+            this.setModalState('loading');
             
             // Make the API call
             this.generateContent(formData);
@@ -626,17 +784,35 @@
         generateContent: function(formData) {
             var self = this;
             
+            // Generate a unique request ID for this API call
+            var requestId = this.apiRequestManager.generateRequestId();
+            this.apiRequestManager.setCurrentRequest(requestId);
+            
+            console.log('WooBoost: Starting API request with ID:', requestId);
+            
             this.apiCall('/generate', 'POST', formData)
                 .done(function(response) {
+                    // Check if this response is still valid (user hasn't cancelled/restarted)
+                    if (!self.apiRequestManager.isValidRequest(requestId)) {
+                        console.log('WooBoost: Ignoring outdated API response for request:', requestId);
+                        return;
+                    }
+                    
                     console.log('WooBoost: Content generated successfully', response);
                     
                     if (response.success && response.data) {
-                        self.handleGenerationSuccess(response.data);
+                        self.handleGenerationSuccess(response.data, requestId);
                     } else {
-                        self.handleGenerationError('Invalid response format from server');
+                        self.handleGenerationError('Invalid response format from server', requestId);
                     }
                 })
                 .fail(function(xhr, status, error) {
+                    // Check if this response is still valid (user hasn't cancelled/restarted)
+                    if (!self.apiRequestManager.isValidRequest(requestId)) {
+                        console.log('WooBoost: Ignoring outdated API error for request:', requestId);
+                        return;
+                    }
+                    
                     console.error('WooBoost: Content generation failed', xhr, status, error);
                     
                     var errorMessage = 'Content generation failed';
@@ -649,29 +825,40 @@
                         errorMessage = 'Network error: ' + error;
                     }
                     
-                    self.handleGenerationError(errorMessage);
-                })
-                .always(function() {
-                    self.setGenerateLoading(false);
+                    self.handleGenerationError(errorMessage, requestId);
                 });
         },
         
         /**
          * Handle successful content generation - Step 6
          */
-        handleGenerationSuccess: function(data) {
-            console.log('WooBoost: Handling generation success', data);
+        handleGenerationSuccess: function(data, requestId) {
+            console.log('WooBoost: Handling generation success for request:', requestId, data);
             
-            // For Step 6, we'll show the generated content in the modal
-            // Step 7 will implement the actual editor insertion
+            // Store the generated data
+            this.modalState.lastGeneratedData = data;
+            
+            // Clear the current request since it's completed
+            this.apiRequestManager.invalidateCurrentRequest();
+            
+            // Set state to generated (this will hide loading and prepare for content display)
+            this.setModalState('generated');
+            
+            // Show the generated content
             this.showGeneratedContent(data);
         },
-        
+
         /**
          * Handle content generation error - Step 6
          */
-        handleGenerationError: function(errorMessage) {
-            console.error('WooBoost: Generation error:', errorMessage);
+        handleGenerationError: function(errorMessage, requestId) {
+            console.error('WooBoost: Generation error for request:', requestId, errorMessage);
+            
+            // Clear the current request since it failed
+            this.apiRequestManager.invalidateCurrentRequest();
+            
+            // Return to idle state to show the form again
+            this.setModalState('idle');
             
             this.showErrors([errorMessage]);
             
@@ -680,9 +867,7 @@
             if ($errorContainer.length) {
                 $errorContainer[0].scrollIntoView({ behavior: 'smooth' });
             }
-        },
-        
-        /**
+        },        /**
          * Show generated content in modal - Step 6
          */
         showGeneratedContent: function(data) {
@@ -738,16 +923,16 @@
          * Regenerate content - Step 6
          */
         regenerateContent: function() {
-            // Remove generated content section
+            console.log('WooBoost: Regenerating content');
+            
+            // Reset to idle state - this will show the Content Options again
+            this.setModalState('idle');
+            
+            // Remove any generated content
             $('.wooboost-generated-content').remove();
             
-            // Trigger generation again with current form data
-            var formData = this.getFormData();
-            if (this.validateForm(formData)) {
-                this.clearErrors();
-                this.setGenerateLoading(true);
-                this.generateContent(formData);
-            }
+            // Clear any previous errors
+            this.clearErrors();
         },
         
         /**
@@ -785,13 +970,109 @@
             if (hasExistingContent) {
                 var message = 'This will replace the existing content in your product editor. Are you sure you want to continue?';
                 
-                if (confirm(message)) {
-                    callback();
-                }
+                // Temporarily hide the main modal
+                this.elements.modalOverlay.removeClass('active');
+                
+                var self = this;
+                this.showCustomConfirmation(message, 
+                    function() {
+                        // User confirmed - proceed with callback and hide main modal
+                        callback();
+                    },
+                    function() {
+                        // User cancelled - restore the main modal
+                        self.elements.modalOverlay.addClass('active');
+                    }
+                );
             } else {
                 // No existing content, proceed directly
                 callback();
             }
+        },
+
+        /**
+         * Show custom confirmation dialog
+         */
+        showCustomConfirmation: function(message, onConfirm, onCancel) {
+            var self = this;
+            
+            // Remove existing confirmation if any
+            $('.wooboost-confirmation-overlay').remove();
+            
+            var confirmationHTML = '<div class="wooboost-confirmation-overlay">' +
+                '<div class="wooboost-confirmation-modal">' +
+                    '<div class="wooboost-confirmation-header">' +
+                        '<div class="wooboost-confirmation-icon">' +
+                            '<svg viewBox="0 0 24 24" fill="currentColor">' +
+                                '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>' +
+                            '</svg>' +
+                        '</div>' +
+                        '<h3 class="wooboost-confirmation-title">Confirm Action</h3>' +
+                    '</div>' +
+                    '<div class="wooboost-confirmation-body">' +
+                        '<p class="wooboost-confirmation-message">' + this.escapeHtml(message) + '</p>' +
+                    '</div>' +
+                    '<div class="wooboost-confirmation-footer">' +
+                        '<button type="button" class="wooboost-btn wooboost-btn-secondary wooboost-confirmation-cancel">Cancel</button>' +
+                        '<button type="button" class="wooboost-btn wooboost-btn-primary wooboost-confirmation-confirm">Continue</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+            
+            // Add to body
+            $('body').append(confirmationHTML);
+            
+            var $overlay = $('.wooboost-confirmation-overlay');
+            var $modal = $('.wooboost-confirmation-modal');
+            
+            // Show with animation
+            setTimeout(function() {
+                $overlay.addClass('wooboost-confirmation-active');
+            }, 50);
+            
+            // Prevent body scroll
+            $('body').addClass('wooboost-modal-open');
+            
+            // Event handlers
+            function cleanup() {
+                $overlay.removeClass('wooboost-confirmation-active');
+                $('body').removeClass('wooboost-modal-open');
+                setTimeout(function() {
+                    $overlay.remove();
+                }, 300);
+            }
+            
+            // Confirm button
+            $overlay.find('.wooboost-confirmation-confirm').on('click', function() {
+                cleanup();
+                if (onConfirm) onConfirm();
+            });
+            
+            // Cancel button
+            $overlay.find('.wooboost-confirmation-cancel').on('click', function() {
+                cleanup();
+                if (onCancel) onCancel();
+            });
+            
+            // Overlay click to cancel
+            $overlay.on('click', function(e) {
+                if (e.target === $overlay[0]) {
+                    cleanup();
+                    if (onCancel) onCancel();
+                }
+            });
+            
+            // Escape key to cancel
+            $(document).on('keydown.wooboost-confirmation', function(e) {
+                if (e.key === 'Escape') {
+                    $(document).off('keydown.wooboost-confirmation');
+                    cleanup();
+                    if (onCancel) onCancel();
+                }
+            });
+            
+            // Focus the confirm button
+            $overlay.find('.wooboost-confirmation-confirm').focus();
         },
         
         /**
@@ -1056,16 +1337,76 @@
          * Show successful insertion feedback - Enhanced Step 7
          */
         showInsertionSuccess: function(results) {
-            var message = 'Content successfully inserted!';
-            if (results.inserted.length > 0) {
-                message += '\n\nInserted: ' + results.inserted.join(', ');
-            }
+            var message = 'Your content has been inserted successfully!';
             
             // Provide visual feedback on the inserted fields
             this.highlightInsertedContent();
             
-            // Show WordPress-style admin notice
-            this.showAdminNotice(message, 'success');
+            // Show custom success notification
+            this.showCustomNotification(message, 'success');
+        },
+
+        /**
+         * Show custom notification toast - replaces WordPress admin notice
+         */
+        showCustomNotification: function(message, type) {
+            type = type || 'info';
+            
+            // Remove existing notifications
+            $('.wooboost-notification').remove();
+            
+            var iconSvg = '';
+            if (type === 'success') {
+                iconSvg = '<svg class="wooboost-notification-icon" viewBox="0 0 20 20" fill="currentColor">' +
+                         '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>';
+            } else if (type === 'error') {
+                iconSvg = '<svg class="wooboost-notification-icon" viewBox="0 0 20 20" fill="currentColor">' +
+                         '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>';
+            }
+            
+            var $notification = $('<div class="wooboost-notification wooboost-notification-' + type + '">' +
+                '<div class="wooboost-notification-content">' +
+                    iconSvg +
+                    '<span class="wooboost-notification-message">' + this.escapeHtml(message) + '</span>' +
+                    '<button type="button" class="wooboost-notification-close" aria-label="Close notification">&times;</button>' +
+                '</div>' +
+            '</div>');
+            
+            // Add to body
+            $('body').append($notification);
+            
+            // Animate in
+            setTimeout(function() {
+                $notification.addClass('wooboost-notification-visible');
+            }, 50);
+            
+            // Auto-dismiss after 4 seconds for success notifications
+            var autoDismissTimer;
+            if (type === 'success') {
+                autoDismissTimer = setTimeout(function() {
+                    dismissNotification();
+                }, 4000);
+            }
+            
+            // Close button handler
+            function dismissNotification() {
+                if (autoDismissTimer) {
+                    clearTimeout(autoDismissTimer);
+                }
+                $notification.removeClass('wooboost-notification-visible');
+                setTimeout(function() {
+                    $notification.remove();
+                }, 300);
+            }
+            
+            $notification.find('.wooboost-notification-close').on('click', dismissNotification);
+            
+            // Click notification to dismiss
+            $notification.on('click', function(e) {
+                if (e.target === $notification[0] || e.target === $notification.find('.wooboost-notification-content')[0]) {
+                    dismissNotification();
+                }
+            });
         },
         
         /**
@@ -1102,13 +1443,13 @@
          * Show insertion error feedback - Step 7
          */
         showInsertionError: function(errors) {
-            var message = 'Failed to insert content:';
+            var message = 'Failed to insert content';
             if (errors.length > 0) {
-                message += '\n\n• ' + errors.join('\n• ');
+                message += ': ' + errors.join(', ');
             }
             
-            // Show WordPress-style admin notice
-            this.showAdminNotice(message, 'error');
+            // Show custom error notification
+            this.showCustomNotification(message, 'error');
         },
         
         /**
