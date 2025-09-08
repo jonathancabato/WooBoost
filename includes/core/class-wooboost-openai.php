@@ -27,6 +27,39 @@ class WooBoost_OpenAI {
     private const API_BASE = 'https://api.openai.com/v1';
     
     /**
+     * Allowed AI models for WooBoost
+     * Only these models are permitted for content generation
+     * Based on OpenAI API documentation - confirmed existing and cost-effective models
+     */
+    private const ALLOWED_MODELS = array(
+        'gpt-5-mini' => array(
+            'id' => 'gpt-5-mini',
+            'name' => 'GPT-5 Mini',
+            'description' => 'Fast and efficient model'
+        ),
+        'gpt-5-nano' => array(
+            'id' => 'gpt-5-nano',
+            'name' => 'GPT-5 Nano',
+            'description' => 'Ultra-fast and cost-effective (Default)'
+        ),
+        'gpt-4o-mini' => array(
+            'id' => 'gpt-4o-mini',
+            'name' => 'GPT-4o Mini',
+            'description' => 'Optimized GPT-4 model'
+        ),
+        'gpt-4.1-nano' => array(
+            'id' => 'gpt-4.1-nano',
+            'name' => 'GPT-4.1 Nano',
+            'description' => 'Latest GPT-4.1 nano variant'
+        )
+    );
+    
+    /**
+     * Default model when none is specified
+     */
+    private const DEFAULT_MODEL = 'gpt-5-nano';
+    
+    /**
      * API key
      */
     private $api_key;
@@ -39,79 +72,112 @@ class WooBoost_OpenAI {
     }
     
     /**
+     * Get allowed models array
+     * 
+     * @return array Array of allowed models
+     */
+    public static function get_allowed_models() {
+        return self::ALLOWED_MODELS;
+    }
+    
+    /**
+     * Get allowed model IDs
+     * 
+     * @return array Array of allowed model IDs
+     */
+    public static function get_allowed_model_ids() {
+        return array_keys(self::ALLOWED_MODELS);
+    }
+    
+    /**
+     * Get default model
+     * 
+     * @return string Default model ID
+     */
+    public static function get_default_model() {
+        return self::DEFAULT_MODEL;
+    }
+    
+    /**
+     * Validate if a model is allowed
+     * 
+     * @param string $model_id Model ID to validate
+     * @return bool True if model is allowed
+     */
+    public static function is_model_allowed($model_id) {
+        return array_key_exists($model_id, self::ALLOWED_MODELS);
+    }
+    
+    /**
+     * Validate and sanitize model selection
+     * 
+     * @param string $model_id Requested model ID
+     * @return string Valid model ID (falls back to default if invalid)
+     */
+    public static function validate_model($model_id) {
+        if (empty($model_id) || !self::is_model_allowed($model_id)) {
+            return self::DEFAULT_MODEL;
+        }
+        return $model_id;
+    }
+    
+    /**
+     * Check if model uses new token parameter format
+     * 
+     * @param string $model_id Model ID to check
+     * @return bool True if model uses max_output_tokens (Responses API)
+     */
+    protected static function uses_completion_tokens($model_id) {
+        // GPT-5 models use the Responses API with max_output_tokens parameter
+        $new_format_models = array('gpt-5-mini', 'gpt-5-nano');
+        return in_array($model_id, $new_format_models);
+    }
+    
+    /**
+     * Check if model supports custom temperature values
+     * 
+     * @param string $model_id Model ID to check
+     * @return bool True if model supports custom temperature
+     */
+    protected static function supports_temperature($model_id) {
+        // GPT-5 models only support default temperature (1)
+        $no_temperature_models = array('gpt-5-mini', 'gpt-5-nano');
+        return !in_array($model_id, $no_temperature_models);
+    }
+    
+    /**
+     * Check if model supports advanced parameters (frequency_penalty, presence_penalty, top_p)
+     * 
+     * @param string $model_id Model ID to check
+     * @return bool True if model supports advanced parameters
+     */
+    protected static function supports_advanced_parameters($model_id) {
+        // GPT-5 models may have limited parameter support
+        $limited_parameter_models = array('gpt-5-mini', 'gpt-5-nano');
+        return !in_array($model_id, $limited_parameter_models);
+    }
+    
+    /**
+     * Check if model requires Responses API instead of Chat Completions API
+     * 
+     * @param string $model_id Model ID to check
+     * @return bool True if model should use Responses API
+     */
+    protected static function uses_responses_api($model_id) {
+        // GPT-5 models work best with Responses API
+        $responses_api_models = array('gpt-5-mini', 'gpt-5-nano');
+        return in_array($model_id, $responses_api_models);
+    }
+    
+    /**
      * List available chat models
      * 
      * @return array|WP_Error Array of model IDs or WP_Error on failure
      */
     public function list_models() {
-        if (!$this->has_api_key()) {
-            return new WP_Error(
-                'no_api_key',
-                __('OpenAI API key is not configured.', 'wooboost'),
-                array('status' => 500)
-            );
-        }
-        
-        $response = wp_remote_get(self::API_BASE . '/models', array(
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $this->api_key,
-                'Content-Type' => 'application/json',
-            ),
-            'timeout' => 30,
-        ));
-        
-        if (is_wp_error($response)) {
-            return new WP_Error(
-                'api_request_failed',
-                __('Failed to connect to OpenAI API.', 'wooboost'),
-                array('status' => 500)
-            );
-        }
-        
-        $status_code = wp_remote_retrieve_response_code($response);
-        $body = wp_remote_retrieve_body($response);
-        
-        if ($status_code !== 200) {
-            $error_data = json_decode($body, true);
-            $error_message = isset($error_data['error']['message']) 
-                ? $error_data['error']['message'] 
-                : __('Unknown API error occurred.', 'wooboost');
-                
-            return new WP_Error(
-                'api_error',
-                $error_message,
-                array('status' => $status_code)
-            );
-        }
-        
-        $data = json_decode($body, true);
-        
-        if (!isset($data['data']) || !is_array($data['data'])) {
-            return new WP_Error(
-                'invalid_response',
-                __('Invalid response from OpenAI API.', 'wooboost'),
-                array('status' => 500)
-            );
-        }
-        
-        // Filter to only chat completion models
-        $chat_models = array();
-        foreach ($data['data'] as $model) {
-            if (isset($model['id']) && $this->is_chat_model($model['id'])) {
-                $chat_models[] = $model['id'];
-            }
-        }
-        
-        // If no chat models found, return our defaults
-        if (empty($chat_models)) {
-            return array(
-                'gpt-4',
-                'gpt-4-turbo-preview', 
-                'gpt-3.5-turbo'
-            );
-        }
-        
-        return $chat_models;
+        // Return only our pre-approved models
+        // This prevents hallucination and ensures only allowed models are available
+        return self::get_allowed_model_ids();
     }
     
     /**
@@ -129,15 +195,48 @@ class WooBoost_OpenAI {
             );
         }
         
+        // Validate and sanitize the model - critical security check
+        $requested_model = $options['model'] ?? self::DEFAULT_MODEL;
+        $validated_model = self::validate_model($requested_model);
+        
+        // Log model validation for debugging
+        if ($requested_model !== $validated_model) {
+            error_log(sprintf(
+                'WooBoost: Invalid model "%s" requested, falling back to "%s"',
+                $requested_model,
+                $validated_model
+            ));
+        }
+        
         // Build the prompt based on options
         $prompt = $this->build_prompt($options);
         
+        // Route to appropriate API based on model type
+        if (self::uses_responses_api($validated_model)) {
+            return $this->generate_content_responses_api($validated_model, $prompt, $options);
+        } else {
+            return $this->generate_content_chat_api($validated_model, $prompt, $options);
+        }
+    }
+    
+    /**
+     * Generate content using Chat Completions API
+     * 
+     * @param string $model Validated model ID
+     * @param string $prompt Generated prompt
+     * @param array $options Generation options
+     * @return array|WP_Error Generated content or WP_Error on failure
+     */
+    private function generate_content_chat_api($model, $prompt, $options) {
         // Map creativity to temperature
         $temperature = $this->map_creativity_to_temperature($options['creativity'] ?? 'Medium');
         
-        // Prepare the API request
+        // Get max tokens value
+        $max_tokens_value = $this->get_max_tokens($options['length'] ?? 'Medium');
+        
+        // Prepare the API request for Chat Completions API
         $request_data = array(
-            'model' => $options['model'] ?? 'gpt-3.5-turbo',
+            'model' => $model,
             'messages' => array(
                 array(
                     'role' => 'system',
@@ -147,13 +246,27 @@ class WooBoost_OpenAI {
                     'role' => 'user',
                     'content' => $prompt
                 )
-            ),
-            'temperature' => $temperature,
-            'max_tokens' => $this->get_max_tokens($options['length'] ?? 'Medium'),
-            'top_p' => 1,
-            'frequency_penalty' => 0,
-            'presence_penalty' => 0
+            )
         );
+        
+        // Only include temperature for models that support it
+        if (self::supports_temperature($model)) {
+            $request_data['temperature'] = $temperature;
+        }
+        
+        // Only include advanced parameters for models that support them
+        if (self::supports_advanced_parameters($model)) {
+            $request_data['top_p'] = 1;
+            $request_data['frequency_penalty'] = 0;
+            $request_data['presence_penalty'] = 0;
+        }
+        
+        // Use the correct token parameter based on model type
+        if (self::uses_completion_tokens($model)) {
+            $request_data['max_completion_tokens'] = $max_tokens_value;
+        } else {
+            $request_data['max_tokens'] = $max_tokens_value;
+        }
         
         $response = wp_remote_post(self::API_BASE . '/chat/completions', array(
             'headers' => array(
@@ -214,6 +327,178 @@ class WooBoost_OpenAI {
     }
     
     /**
+     * Generate content using Responses API (for GPT-5 models)
+     * 
+     * @param string $model Validated model ID  
+     * @param string $prompt Generated prompt
+     * @param array $options Generation options
+     * @return array|WP_Error Generated content or WP_Error on failure
+     */
+    private function generate_content_responses_api($model, $prompt, $options) {
+        // Map creativity to verbosity for GPT-5 models
+        $verbosity = $this->map_creativity_to_verbosity($options['creativity'] ?? 'Medium');
+        
+        // Get max tokens value
+        $max_tokens_value = $this->get_max_tokens($options['length'] ?? 'Medium');
+        
+        // Build system and user input for Responses API
+        $input_messages = array(
+            array(
+                'role' => 'system',
+                'content' => 'You are a professional e-commerce copywriter specializing in product descriptions. Create compelling, accurate, and SEO-friendly content that helps customers understand the product value and encourages purchases.'
+            ),
+            array(
+                'role' => 'user', 
+                'content' => $prompt
+            )
+        );
+        
+        // Prepare the API request for Responses API
+        $request_data = array(
+            'model' => $model,
+            'input' => $input_messages,
+            'text' => array(
+                'verbosity' => $verbosity
+            ),
+            'reasoning' => array(
+                'effort' => 'minimal'  // Minimize reasoning to save tokens for actual content
+            )
+        );
+        
+        // Add token limits if supported - Responses API uses max_output_tokens
+        if (self::uses_completion_tokens($model)) {
+            // Increase token limit to account for reasoning overhead
+            $adjusted_tokens = $max_tokens_value + 200; // Add buffer for reasoning
+            $request_data['max_output_tokens'] = $adjusted_tokens;
+        }
+        
+        $response = wp_remote_post(self::API_BASE . '/responses', array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $this->api_key,
+                'Content-Type' => 'application/json',
+            ),
+            'body' => json_encode($request_data),
+            'timeout' => 60,
+        ));
+        
+        if (is_wp_error($response)) {
+            return new WP_Error(
+                'api_request_failed',
+                __('Failed to connect to OpenAI API: ', 'wooboost') . $response->get_error_message(),
+                array('status' => 500)
+            );
+        }
+        
+        $status_code = wp_remote_retrieve_response_code($response);
+        $body = wp_remote_retrieve_body($response);
+        
+        if ($status_code !== 200) {
+            $error_data = json_decode($body, true);
+            $error_message = isset($error_data['error']['message']) 
+                ? $error_data['error']['message'] 
+                : __('Unknown API error occurred.', 'wooboost');
+                
+            return new WP_Error(
+                'api_error',
+                $error_message,
+                array('status' => $status_code)
+            );
+        }
+        
+        $data = json_decode($body, true);
+        
+        // Extract content from Responses API format
+        // Based on OpenAI docs: response should have output_text property directly
+        $generated_content = $this->extract_responses_api_content($data);
+        
+        if (empty($generated_content)) {
+            return new WP_Error(
+                'invalid_response',
+                __('Invalid response from OpenAI Responses API. No content found in response.', 'wooboost'),
+                array('status' => 500)
+            );
+        }
+        
+        // Process the content based on format preference
+        $processed_content = $this->process_content_format($generated_content, $options['format'] ?? 'Plain text');
+        
+        // Extract excerpt
+        $excerpt = $this->extract_excerpt($processed_content);
+        
+        return array(
+            'excerpt' => $excerpt,
+            'description' => $processed_content,
+            'usage' => isset($data['usage']) ? $data['usage'] : null
+        );
+    }
+    
+    /**
+     * Extract content from Responses API response format
+     * 
+     * @param array $data API response data
+     * @return string Extracted content
+     */
+    private function extract_responses_api_content($data) {
+        $content = '';
+        
+        // GPT-5 Responses API format: content is in output array
+        if (isset($data['output']) && is_array($data['output'])) {
+            foreach ($data['output'] as $item) {
+                // Look for message type items with content
+                if (isset($item['type']) && $item['type'] === 'message' && isset($item['content'])) {
+                    if (is_array($item['content'])) {
+                        foreach ($item['content'] as $content_item) {
+                            if (isset($content_item['type']) && $content_item['type'] === 'output_text' && isset($content_item['text'])) {
+                                $content .= $content_item['text'];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Fallback: Primary format (output_text property directly)
+        elseif (isset($data['output_text']) && is_string($data['output_text'])) {
+            $content = $data['output_text'];
+        }
+        // Fallback: choices array (similar to Chat Completions)
+        elseif (isset($data['choices']) && is_array($data['choices']) && !empty($data['choices'])) {
+            if (isset($data['choices'][0]['message']['content'])) {
+                $content = $data['choices'][0]['message']['content'];
+            } elseif (isset($data['choices'][0]['text'])) {
+                $content = $data['choices'][0]['text'];
+            }
+        }
+        // Fallback: direct content property
+        elseif (isset($data['content']) && is_string($data['content'])) {
+            $content = $data['content'];
+        }
+        // Fallback: text property
+        elseif (isset($data['text']) && is_string($data['text'])) {
+            $content = $data['text'];
+        }
+        
+        return trim($content);
+    }
+    
+    /**
+     * Map creativity setting to verbosity parameter for GPT-5 models
+     * 
+     * @param string $creativity Creativity setting
+     * @return string Verbosity level
+     */
+    private function map_creativity_to_verbosity($creativity) {
+        switch (strtolower($creativity)) {
+            case 'low':
+                return 'low';
+            case 'medium':
+            default:
+                return 'medium';
+            case 'high':
+                return 'high';
+        }
+    }
+    
+    /**
      * Check if API key is configured
      * 
      * @return bool True if API key is set
@@ -269,29 +554,6 @@ class WooBoost_OpenAI {
                 array('status' => $status_code)
             );
         }
-    }
-    
-    /**
-     * Check if a model ID is a chat completion model
-     * 
-     * @param string $model_id Model ID to check
-     * @return bool True if it's a chat model
-     */
-    private function is_chat_model($model_id) {
-        $chat_model_patterns = array(
-            'gpt-3.5',
-            'gpt-4',
-            'gpt-3.5-turbo',
-            'gpt-4-turbo'
-        );
-        
-        foreach ($chat_model_patterns as $pattern) {
-            if (strpos($model_id, $pattern) !== false) {
-                return true;
-            }
-        }
-        
-        return false;
     }
     
     /**
@@ -400,7 +662,7 @@ class WooBoost_OpenAI {
      * @param string $creativity Creativity level
      * @return float Temperature value
      */
-    private function map_creativity_to_temperature($creativity) {
+    protected function map_creativity_to_temperature($creativity) {
         switch ($creativity) {
             case 'Low':
                 return 0.3;
@@ -421,7 +683,7 @@ class WooBoost_OpenAI {
      * @param string $length Content length
      * @return int Max tokens
      */
-    private function get_max_tokens($length) {
+    protected function get_max_tokens($length) {
         switch ($length) {
             case 'Small':
                 return 150;

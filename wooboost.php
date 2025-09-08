@@ -31,9 +31,6 @@ define('WOOBOOST_PLUGIN_BASENAME', plugin_basename(__FILE__));
 define('WOOBOOST_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WOOBOOST_PLUGIN_URL', plugin_dir_url(__FILE__));
 
-// Define OpenAI API key (server-side only)
-define('WOOBOOST_OPENAI_KEY', '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');
-
 /**
  * Class WooBoost_Main
  * 
@@ -175,3 +172,50 @@ class WooBoost_Main {
 
 // Initialize the plugin
 WooBoost_Main::get_instance();
+
+// Admin notice: prompt for WOOBOOST_OPENAI_KEY in wp-config.php
+add_action('admin_notices', function() {
+    // Only show to administrators
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    // Don't show on non-admin screens
+    if (!is_admin()) {
+        return;
+    }
+
+    // If constant is defined, nothing to do
+    if (defined('WOOBOOST_OPENAI_KEY') && !empty(WOOBOOST_OPENAI_KEY)) {
+        return;
+    }
+
+    // Prepare the code snippet
+    $snippet = "define('WOOBOOST_OPENAI_KEY', 'your-api-key-here');";
+    ?>
+    <div class="notice notice-warning is-dismissible">
+        <p><strong><?php esc_html_e('WooBoost OpenAI key missing', 'wooboost'); ?></strong></p>
+        <p><?php esc_html_e('WooBoost requires an OpenAI API key to generate content. Add the following line to your wp-config.php (before the line that says "That’s all, stop editing! Happy publishing."):', 'wooboost'); ?></p>
+        <pre style="background:#f7f7f7;border:1px solid #ddd;padding:10px;"><?php echo esc_html($snippet); ?></pre>
+        <p>
+            <button class="button button-primary" id="wooboost-copy-key-snippet"><?php esc_html_e('Copy to clipboard', 'wooboost'); ?></button>
+            <a href="https://platform.openai.com/account/api-keys" target="_blank" class="button" rel="noopener noreferrer"><?php esc_html_e('Get an OpenAI API key', 'wooboost'); ?></a>
+        </p>
+    </div>
+    <script type="text/javascript">
+    (function(){
+        var btn = document.getElementById('wooboost-copy-key-snippet');
+        if (!btn) return;
+        btn.addEventListener('click', function(e){
+            var text = "<?php echo esc_js($snippet); ?>";
+            navigator.clipboard && navigator.clipboard.writeText(text).then(function(){
+                btn.textContent = '<?php echo esc_js( __('Copied', 'wooboost') ); ?>';
+                setTimeout(function(){ btn.textContent = '<?php echo esc_js( __('Copy to clipboard', 'wooboost') ); ?>'; }, 2000);
+            }, function(){
+                alert('<?php echo esc_js( __('Copy to clipboard failed. Please copy manually.', 'wooboost') ); ?>');
+            });
+        });
+    })();
+    </script>
+    <?php
+});
