@@ -27,12 +27,13 @@
     justify-content: center;
     transition: all 0.2s ease;
     font-size: 0; /* Hide any text content */
-    transition: transform 0.3s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    transition: all 0.7s ease-in-out;
 }
 
 .wooboost-floating-button:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     transform: translateY(-1px);
+    rotate: 180deg;
 }
 
 .wooboost-floating-button:focus {
