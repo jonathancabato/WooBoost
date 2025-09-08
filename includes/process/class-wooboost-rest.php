@@ -147,9 +147,12 @@ class WooBoost_REST extends WP_REST_Controller {
     public function generate_content($request) {
         $params = $request->get_params();
         
-        // Sanitize parameters
+        // Sanitize parameters with strict model validation
+        $requested_model = sanitize_text_field($params['model'] ?? WooBoost_OpenAI::get_default_model());
+        $validated_model = WooBoost_OpenAI::validate_model($requested_model);
+        
         $options = array(
-            'model'        => sanitize_text_field($params['model'] ?? 'gpt-3.5-turbo'),
+            'model'        => $validated_model,
             'length'       => sanitize_text_field($params['length'] ?? 'Medium'),
             'creativity'   => sanitize_text_field($params['creativity'] ?? 'Medium'),
             'style'        => sanitize_text_field($params['style'] ?? 'Formal'),
@@ -177,9 +180,10 @@ class WooBoost_REST extends WP_REST_Controller {
     private function get_generate_args() {
         return array(
             'model' => array(
-                'description' => __('ChatGPT model to use', 'wooboost'),
+                'description' => __('AI Model to use for content generation', 'wooboost'),
                 'type'        => 'string',
-                'default'     => 'gpt-3.5-turbo',
+                'enum'        => WooBoost_OpenAI::get_allowed_model_ids(),
+                'default'     => WooBoost_OpenAI::get_default_model(),
             ),
             'length' => array(
                 'description' => __('Content length', 'wooboost'),

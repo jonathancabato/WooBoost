@@ -25,6 +25,39 @@
     window.WooBoostEditor = {
         
         /**
+         * Allowed AI models for WooBoost
+         * This array must match the backend model configuration
+         * Confirmed existing and cost-effective models
+         */
+        allowedModels: {
+            'gpt-5-mini': {
+                id: 'gpt-5-mini',
+                name: 'GPT-5 Mini',
+                description: 'Fast and efficient model'
+            },
+            'gpt-5-nano': {
+                id: 'gpt-5-nano',
+                name: 'GPT-5 Nano',
+                description: 'Ultra-fast and cost-effective (Default)'
+            },
+            'gpt-4o-mini': {
+                id: 'gpt-4o-mini',
+                name: 'GPT-4o Mini',
+                description: 'Optimized GPT-4 model'
+            },
+            'gpt-4.1-nano': {
+                id: 'gpt-4.1-nano',
+                name: 'GPT-4.1 Nano',
+                description: 'Latest GPT-4.1 nano variant'
+            }
+        },
+        
+        /**
+         * Default model ID
+         */
+        defaultModel: 'gpt-5-nano',
+        
+        /**
          * Configuration
          */
         config: {
@@ -60,6 +93,49 @@
         modalState: {
             current: 'idle', // 'idle', 'loading', 'generated'
             lastGeneratedData: null
+        },
+        
+        /**
+         * Model utility methods
+         */
+        modelUtils: {
+            /**
+             * Get array of allowed model IDs
+             */
+            getAllowedModelIds: function() {
+                return Object.keys(WooBoostEditor.allowedModels);
+            },
+            
+            /**
+             * Validate if a model is allowed
+             */
+            isModelAllowed: function(modelId) {
+                return WooBoostEditor.allowedModels.hasOwnProperty(modelId);
+            },
+            
+            /**
+             * Validate and sanitize model selection
+             */
+            validateModel: function(modelId) {
+                if (!modelId || !this.isModelAllowed(modelId)) {
+                    return WooBoostEditor.defaultModel;
+                }
+                return modelId;
+            },
+            
+            /**
+             * Generate HTML options for model select dropdown
+             */
+            generateModelOptions: function() {
+                var options = '';
+                for (var modelId in WooBoostEditor.allowedModels) {
+                    var model = WooBoostEditor.allowedModels[modelId];
+                    var selected = modelId === WooBoostEditor.defaultModel ? ' selected' : '';
+                    options += '<option value="' + model.id + '"' + selected + '>' + 
+                              model.name + ' - ' + model.description + '</option>';
+                }
+                return options;
+            }
         },
 
         /**
@@ -426,7 +502,7 @@
          */
         testGenerateEndpoint: function() {
             var testData = {
-                model: 'gpt-3.5-turbo',
+                model: WooBoostEditor.defaultModel,
                 length: 'Medium',
                 creativity: 'Medium',
                 style: 'Formal',
@@ -472,9 +548,7 @@
                                 '<div class="wooboost-form-row">' +
                                     '<label class="wooboost-form-label" for="wooboost-model">AI Model</label>' +
                                     '<select class="wooboost-form-select" id="wooboost-model" name="model">' +
-                                        '<option value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster)</option>' +
-                                        '<option value="gpt-4">GPT-4 (Higher Quality)</option>' +
-                                        '<option value="gpt-4-turbo-preview">GPT-4 Turbo (Latest)</option>' +
+                                        this.modelUtils.generateModelOptions() +
                                     '</select>' +
                                     '<div class="wooboost-form-help">Choose the AI model for content generation</div>' +
                                 '</div>' +
@@ -1690,8 +1764,17 @@
             var $form = $('#wooboost-generation-form');
             var productData = this.extractProductData();
             
+            // Validate and sanitize the model selection
+            var requestedModel = $form.find('#wooboost-model').val();
+            var validatedModel = this.modelUtils.validateModel(requestedModel);
+            
+            // Log model validation for debugging
+            if (requestedModel !== validatedModel) {
+                console.warn('WooBoost: Invalid model "' + requestedModel + '" requested, using "' + validatedModel + '"');
+            }
+            
             return {
-                model: $form.find('#wooboost-model').val(),
+                model: validatedModel,
                 length: $form.find('#wooboost-length').val(),
                 creativity: $form.find('#wooboost-creativity').val(),
                 style: $form.find('#wooboost-style').val(),
@@ -1710,6 +1793,8 @@
             
             if (!formData.model) {
                 errors.push('Please select an AI model');
+            } else if (!this.modelUtils.isModelAllowed(formData.model)) {
+                errors.push('Invalid AI model selected');
             }
             
             if (!formData.length) {
