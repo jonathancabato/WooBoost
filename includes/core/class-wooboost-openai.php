@@ -203,8 +203,11 @@ class WooBoost_OpenAI {
         // Process the content based on format preference
         $processed_content = $this->process_content_format($generated_content, $options['format'] ?? 'Plain text');
         
+        // Extract excerpt
+        $excerpt = $this->extract_excerpt($processed_content);
+        
         return array(
-            'excerpt' => $this->extract_excerpt($processed_content),
+            'excerpt' => $excerpt,
             'description' => $processed_content,
             'usage' => isset($data['usage']) ? $data['usage'] : null
         );
@@ -367,8 +370,17 @@ class WooBoost_OpenAI {
         }
         
         // Format requirements
-        if ($format === 'Rich typography') {
-            $prompt .= "- Use HTML formatting with <strong>, <em>, and <br> tags where appropriate\n";
+        if ($format === 'HTML (Simplified)') {
+            $prompt .= "- Use simple HTML formatting with <strong>, <em>, <b>, <i>, <u>, and <br> tags where appropriate\n";
+            $prompt .= "- Keep formatting minimal and focused on emphasis\n";
+        } elseif ($format === 'HTML (Detailed)') {
+            $prompt .= "- Use comprehensive HTML formatting with proper structure:\n";
+            $prompt .= "- Use <h2> and <h3> for section headings (e.g., 'Product Overview', 'Key Features', 'Specifications')\n";
+            $prompt .= "- Use <ul> and <li> tags for feature lists and bullet points\n";
+            $prompt .= "- Use <p> tags for paragraphs\n";
+            $prompt .= "- Use <strong> for important terms and <em> for subtle emphasis\n";
+            $prompt .= "- Create well-structured content with clear sections and hierarchy\n";
+            $prompt .= "- Example structure: <h2>Product Overview</h2><p>Description...</p><h3>Key Features</h3><ul><li><strong>Feature:</strong> Description</li></ul>\n";
         } else {
             $prompt .= "- Use plain text without HTML formatting\n";
         }
@@ -432,12 +444,19 @@ class WooBoost_OpenAI {
      * @return string Processed content
      */
     private function process_content_format($content, $format) {
-        if ($format === 'Rich typography') {
+        if ($format === 'HTML (Simplified)' || $format === 'Rich typography') {
             // Convert basic markdown-style formatting to HTML if present
             $content = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $content);
             $content = preg_replace('/\*(.*?)\*/', '<em>$1</em>', $content);
             $content = preg_replace('/\n\n/', '<br><br>', $content);
             $content = preg_replace('/\n/', '<br>', $content);
+        } elseif ($format === 'HTML (Detailed)') {
+            // For detailed HTML, the AI should already provide structured HTML
+            // Just clean up any markdown artifacts that might remain
+            $content = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $content);
+            $content = preg_replace('/\*(.*?)\*/', '<em>$1</em>', $content);
+            
+            // Don't convert newlines to <br> for detailed HTML as it should already have proper structure
         }
         
         return $content;
@@ -450,8 +469,25 @@ class WooBoost_OpenAI {
      * @return string Excerpt
      */
     private function extract_excerpt($content) {
-        // Remove HTML tags for excerpt
-        $plain_content = strip_tags($content);
+        // For HTML content, try to get a meaningful excerpt that preserves some structure
+        if (strpos($content, '<') !== false) {
+            // Remove heading tags but keep paragraph content
+            $content_for_excerpt = preg_replace('/<h[1-6][^>]*>.*?<\/h[1-6]>/i', '', $content);
+            
+            // Find the first paragraph or meaningful content
+            if (preg_match('/<p[^>]*>(.*?)<\/p>/i', $content_for_excerpt, $matches)) {
+                $plain_content = strip_tags($matches[1]);
+            } else {
+                // Fallback: strip all tags
+                $plain_content = strip_tags($content_for_excerpt);
+            }
+        } else {
+            // Plain text content
+            $plain_content = $content;
+        }
+        
+        // Clean up whitespace
+        $plain_content = trim(preg_replace('/\s+/', ' ', $plain_content));
         
         // Get first sentence or first 150 characters
         $sentences = preg_split('/[.!?]+/', $plain_content);
@@ -461,6 +497,6 @@ class WooBoost_OpenAI {
             return substr($first_sentence, 0, 147) . '...';
         }
         
-        return $first_sentence . '.';
+        return empty($first_sentence) ? substr($plain_content, 0, 147) . '...' : $first_sentence . '.';
     }
 }
