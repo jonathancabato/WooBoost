@@ -31,9 +31,6 @@ define('WOOBOOST_PLUGIN_BASENAME', plugin_basename(__FILE__));
 define('WOOBOOST_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WOOBOOST_PLUGIN_URL', plugin_dir_url(__FILE__));
 
-// Define OpenAI API key (server-side only)
-define('WOOBOOST_OPENAI_KEY', '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');
-
 /**
  * Class WooBoost_Main
  * 
