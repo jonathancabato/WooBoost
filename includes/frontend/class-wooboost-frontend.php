@@ -42,7 +42,7 @@ class WooBoost_Frontend {
         // Enqueue JavaScript
         wp_enqueue_script(
             'wooboost-editor-ui',
-            WOOBOOST_PLUGIN_URL . 'includes/frontend/editor-ui.js',
+            WOOBOOST_PLUGIN_URL . 'assets/js/editor-ui.js',
             array('jquery'),
             WOOBOOST_VERSION,
             true
@@ -51,7 +51,7 @@ class WooBoost_Frontend {
         // Enqueue CSS
         wp_enqueue_style(
             'wooboost-editor-ui',
-            WOOBOOST_PLUGIN_URL . 'includes/frontend/editor-ui.css',
+            WOOBOOST_PLUGIN_URL . 'assets/css/editor-ui.css',
             array(),
             WOOBOOST_VERSION
         );
