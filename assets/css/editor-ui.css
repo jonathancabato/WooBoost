@@ -17,7 +17,7 @@
     height: 44px;
     border-radius: 50%;
     border: none;
-    background: #007cba;
+    background: linear-gradient(180deg,rgba(155, 42, 134, 1) 0%, rgba(96, 87, 199, 1) 50%);
     color: white;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -27,12 +27,13 @@
     justify-content: center;
     transition: all 0.2s ease;
     font-size: 0; /* Hide any text content */
+    transition: all 0.7s ease-in-out;
 }
 
 .wooboost-floating-button:hover {
-    background: #005a87;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     transform: translateY(-1px);
+    rotate: 180deg;
 }
 
 .wooboost-floating-button:focus {
@@ -46,8 +47,8 @@
 }
 
 .wooboost-floating-button svg {
-    width: 20px;
-    height: 20px;
+    width: 140px;
+    height: auto;
     pointer-events: none;
 }
 
@@ -225,6 +226,7 @@
 .wooboost-form-select,
 .wooboost-form-input {
     width: 100%;
+    max-width: 100%!important;
     padding: 14px 16px;
     border: 2px solid #e5e7eb;
     border-radius: 12px;
