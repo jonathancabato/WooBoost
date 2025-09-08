@@ -400,8 +400,24 @@
          * Get magic wand SVG icon
          */
         getMagicWandSVG: function() {
-            return '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
-                   '<path d="M7.5 5.6L10 7 8.6 4.5 10 2 7.5 3.4 5 2l1.4 2.5L5 7zm12 9.8L17 14l1.4 2.5L17 19l2.5-1.4L22 19l-1.4-2.5L22 14zM22 2l-2.5 1.4L17 2l1.4 2.5L17 7l2.5-1.4L22 7l-1.4-2.5zm-7.63 5.29c-.39-.39-1.02-.39-1.41 0L1.29 18.96c-.39.39-.39 1.02 0 1.41s1.02.39 1.41 0L14.37 8.7c.39-.39.39-1.02 0-1.41z"/>' +
+            return '<svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" aria-hidden="true">' +
+                   '<style>.node{fill:currentColor;stroke:currentColor;stroke-width:0.5}.line{fill:none;stroke:currentColor;stroke-width:0.75;stroke-linecap:round}.line-path{stroke-dasharray:20;stroke-dashoffset:20;animation:drawLine 2.5s infinite ease-out}@keyframes drawLine{to{stroke-dashoffset:0}}svg g{transform-origin:center;transform-box:fill-box}#central-node{animation:pulseNode 3s infinite ease-in-out}@keyframes pulseNode{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}' +
+                   '</style>' +
+                   '<g id="ai-network">' +
+                   '<path id="line-1" class="line line-path" d="M12 12 L 6 6"/>' +
+                   '<path id="line-2" class="line line-path" d="M12 12 L 18 6"/>' +
+                   '<path id="line-3" class="line line-path" d="M12 12 L 20 12"/>' +
+                   '<path id="line-4" class="line line-path" d="M12 12 L 18 18"/>' +
+                   '<path id="line-5" class="line line-path" d="M12 12 L 6 18"/>' +
+                   '<path id="line-6" class="line line-path" d="M12 12 L 4 12"/>' +
+                   '<circle id="central-node" class="node" cx="12" cy="12" r="3"/>' +
+                   '<circle class="node" cx="6" cy="6" r="1.5"/>' +
+                   '<circle class="node" cx="18" cy="6" r="1.5"/>' +
+                   '<circle class="node" cx="20" cy="12" r="1.5"/>' +
+                   '<circle class="node" cx="18" cy="18" r="1.5"/>' +
+                   '<circle class="node" cx="6" cy="18" r="1.5"/>' +
+                   '<circle class="node" cx="4" cy="12" r="1.5"/>' +
+                   '</g>' +
                    '</svg>';
         },
         
