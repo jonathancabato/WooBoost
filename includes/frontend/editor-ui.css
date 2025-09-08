@@ -225,6 +225,7 @@
 .wooboost-form-select,
 .wooboost-form-input {
     width: 100%;
+    max-width: 100%!important;
     padding: 14px 16px;
     border: 2px solid #e5e7eb;
     border-radius: 12px;
