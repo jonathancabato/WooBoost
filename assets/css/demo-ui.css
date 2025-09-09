@@ -34,6 +34,11 @@
     display: none !important;
 }
 
+/* Hide Duplicate action in product list */
+.demo-user .post-type-product .row-actions .duplicate {
+    display: none !important;
+}
+
 /* Hide restricted menu items */
 .demo-user #menu-posts,
 .demo-user #menu-pages,

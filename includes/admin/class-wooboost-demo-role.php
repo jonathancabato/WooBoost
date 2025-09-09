@@ -334,6 +334,7 @@ class WooBoost_Demo_Role {
         // Remove delete and quick edit actions
         unset($actions['trash']);
         unset($actions['inline hide-if-no-js']);
+        unset($actions['duplicate']);
         
         return $actions;
     }

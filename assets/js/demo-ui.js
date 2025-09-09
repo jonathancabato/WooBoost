@@ -65,6 +65,9 @@ jQuery(document).ready(function($) {
         
         // Remove quick edit event handlers
         $(document).off('click', '.editinline');
+
+        // Remove Duplicate action in product list
+        $('.post-type-product .row-actions .duplicate').hide();
     }
     
     /**
