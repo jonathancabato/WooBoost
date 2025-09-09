@@ -46,6 +46,13 @@ class WooBoost_Demo_Role {
         // Remove bulk actions and row actions for demo users
         add_filter('bulk_actions-edit-product', array($this, 'remove_bulk_actions'));
         add_filter('post_row_actions', array($this, 'remove_row_actions'), 10, 2);
+        
+        // Prevent editing of existing products
+        add_action('load-post.php', array($this, 'prevent_existing_product_edit'));
+        add_filter('user_has_cap', array($this, 'filter_user_capabilities'), 10, 4);
+        
+        // Show admin notices for demo restrictions
+        add_action('admin_notices', array($this, 'show_demo_notices'));
     }
     
     /**
@@ -60,15 +67,11 @@ class WooBoost_Demo_Role {
             // Basic WordPress capabilities
             'read' => true,
             
-            // Product management capabilities
+            // Product management capabilities - only for new products
             'edit_products' => true,
-            'edit_published_products' => true,
+            'create_products' => true,
             'publish_products' => true,
             'read_private_products' => true,
-            
-            // Product creation capabilities
-            'edit_product' => true,
-            'create_products' => true,
             
             // Required for admin access
             'access_admin' => true,
@@ -227,5 +230,100 @@ class WooBoost_Demo_Role {
         unset($actions['inline hide-if-no-js']);
         
         return $actions;
+    }
+    
+    /**
+     * Prevent demo users from editing existing products
+     */
+    public function prevent_existing_product_edit() {
+        if (!$this->is_demo_user()) {
+            return;
+        }
+        
+        // Check if we're trying to edit an existing product
+        if (isset($_GET['post']) && isset($_GET['action']) && $_GET['action'] === 'edit') {
+            $post_id = intval($_GET['post']);
+            $post = get_post($post_id);
+            
+            if ($post && $post->post_type === 'product') {
+                // Redirect to products list with error message
+                $redirect_url = add_query_arg(
+                    array(
+                        'post_type' => 'product',
+                        'demo_error' => 'edit_existing'
+                    ),
+                    admin_url('edit.php')
+                );
+                wp_safe_redirect($redirect_url);
+                exit;
+            }
+        }
+    }
+    
+    /**
+     * Filter user capabilities for demo users
+     * 
+     * @param array $allcaps All capabilities
+     * @param array $caps Required capabilities
+     * @param array $args Additional arguments
+     * @param WP_User $user Current user
+     * @return array
+     */
+    public function filter_user_capabilities($allcaps, $caps, $args, $user) {
+        if (!in_array(self::ROLE_NAME, $user->roles)) {
+            return $allcaps;
+        }
+        
+        // Check if user is trying to edit an existing product
+        if (isset($args[0]) && $args[0] === 'edit_post' && isset($args[2])) {
+            $post_id = $args[2];
+            $post = get_post($post_id);
+            
+            if ($post && $post->post_type === 'product' && $post->post_status !== 'auto-draft') {
+                // Remove capability to edit existing products
+                $allcaps['edit_post'] = false;
+                $allcaps['edit_product'] = false;
+                $allcaps['edit_products'] = false;
+            }
+        }
+        
+        return $allcaps;
+    }
+    
+    /**
+     * Show admin notices for demo restrictions
+     */
+    public function show_demo_notices() {
+        if (!$this->is_demo_user()) {
+            return;
+        }
+        
+        // Show demo error notices
+        if (isset($_GET['demo_error'])) {
+            $error_type = sanitize_text_field($_GET['demo_error']);
+            
+            switch ($error_type) {
+                case 'edit_existing':
+                    $message = __('Demo users cannot edit existing products. You can only create new products.', 'wooboost');
+                    break;
+                default:
+                    $message = __('This action is restricted for demo users.', 'wooboost');
+            }
+            
+            echo '<div class="notice notice-error is-dismissible">';
+            echo '<p><strong>' . esc_html__('Demo Restriction:', 'wooboost') . '</strong> ';
+            echo esc_html($message) . '</p>';
+            echo '</div>';
+        }
+        
+        // Show general demo mode notice on product pages only
+        $screen = get_current_screen();
+        if ($screen && ($screen->post_type === 'product' || $screen->id === 'edit-product')) {
+            echo '<div class="notice notice-info">';
+            echo '<p><strong>' . esc_html__('Demo Mode Active:', 'wooboost') . '</strong> ';
+            echo esc_html__('You are in demo mode with limited access to WooCommerce product management.', 'wooboost');
+            echo '</p>';
+            echo '</div>';
+        }
     }
 }
