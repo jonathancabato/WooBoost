@@ -146,7 +146,15 @@ class WooBoost_Main {
      * Plugin deactivation hook
      */
     public function deactivate() {
-        // Deactivation logic here
+        // Include user access class for cleanup
+        if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/admin/class-wooboost-user-access.php')) {
+            require_once WOOBOOST_PLUGIN_DIR . 'includes/admin/class-wooboost-user-access.php';
+        }
+        
+        // Remove WooCommerce product capabilities from editor role
+        if (class_exists('WooBoost_User_Access')) {
+            WooBoost_User_Access::remove_product_capabilities_from_editor();
+        }
         
         // Flush rewrite rules
         flush_rewrite_rules();

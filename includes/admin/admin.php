@@ -14,4 +14,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Future admin functionality here
+// Include user access management
+require_once WOOBOOST_PLUGIN_DIR . 'includes/admin/class-wooboost-user-access.php';
+
+// Include capabilities test (for debugging)
+require_once WOOBOOST_PLUGIN_DIR . 'includes/admin/capabilities-test.php';
