@@ -34,6 +34,45 @@
     display: none !important;
 }
 
+/* Hide restricted menu items */
+.demo-user #menu-posts,
+.demo-user #menu-pages,
+.demo-user #menu-media,
+.demo-user #menu-comments,
+.demo-user #menu-themes,
+.demo-user #menu-plugins,
+.demo-user #menu-users,
+.demo-user #menu-tools,
+.demo-user #menu-settings,
+.demo-user #menu-dashboard,
+.demo-user #toplevel_page_woocommerce {
+    display: none !important;
+}
+
+/* Hide admin bar items */
+.demo-user #wp-admin-bar-wp-logo,
+.demo-user #wp-admin-bar-site-name,
+.demo-user #wp-admin-bar-dashboard,
+.demo-user #wp-admin-bar-themes,
+.demo-user #wp-admin-bar-widgets,
+.demo-user #wp-admin-bar-menus,
+.demo-user #wp-admin-bar-new-content,
+.demo-user #wp-admin-bar-comments {
+    display: none !important;
+}
+
+/* Hide screen options and help */
+.demo-user #screen-options-link-wrap,
+.demo-user #contextual-help-link-wrap {
+    display: none !important;
+}
+
+/* Hide footer links */
+.demo-user #footer-thankyou,
+.demo-user #footer-upgrade {
+    display: none !important;
+}
+
 /* General demo user indicator */
 .demo-user-indicator {
     background: #ffeb3b;
