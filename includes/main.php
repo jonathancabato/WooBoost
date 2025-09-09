@@ -43,15 +43,19 @@ class WooBoost_Core {
         $this->load_core_modules();
         $this->load_process_modules();
         $this->load_frontend_modules();
-        // Future module loading here
-        // $this->load_admin_modules();
+        $this->load_admin_modules();
     }
     
     /**
      * Load admin modules
      */
     private function load_admin_modules() {
-        // Future admin module loading
+        // Load demo role management
+        if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/admin/class-wooboost-demo-role.php')) {
+            require_once WOOBOOST_PLUGIN_DIR . 'includes/admin/class-wooboost-demo-role.php';
+            new WooBoost_Demo_Role();
+            WooBoost_Logger::info('WooBoost Demo Role management loaded');
+        }
     }
     
     /**

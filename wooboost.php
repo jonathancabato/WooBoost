@@ -138,6 +138,9 @@ class WooBoost_Main {
         $this->create_tables();
         $this->set_default_options();
         
+        // Create demo user role
+        $this->create_demo_role();
+        
         // Flush rewrite rules
         flush_rewrite_rules();
     }
@@ -146,7 +149,8 @@ class WooBoost_Main {
      * Plugin deactivation hook
      */
     public function deactivate() {
-        // Deactivation logic here
+        // Remove demo user role
+        $this->remove_demo_role();
         
         // Flush rewrite rules
         flush_rewrite_rules();
@@ -166,6 +170,40 @@ class WooBoost_Main {
         // Set default options
         if (!get_option('wooboost_version')) {
             add_option('wooboost_version', WOOBOOST_VERSION);
+        }
+    }
+    
+    /**
+     * Create demo user role
+     */
+    private function create_demo_role() {
+        // Load the demo role class if not already loaded
+        if (!class_exists('WooBoost_Demo_Role')) {
+            if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/admin/class-wooboost-demo-role.php')) {
+                require_once WOOBOOST_PLUGIN_DIR . 'includes/admin/class-wooboost-demo-role.php';
+            }
+        }
+        
+        // Create the demo role
+        if (class_exists('WooBoost_Demo_Role')) {
+            WooBoost_Demo_Role::create_demo_role();
+        }
+    }
+    
+    /**
+     * Remove demo user role
+     */
+    private function remove_demo_role() {
+        // Load the demo role class if not already loaded
+        if (!class_exists('WooBoost_Demo_Role')) {
+            if (file_exists(WOOBOOST_PLUGIN_DIR . 'includes/admin/class-wooboost-demo-role.php')) {
+                require_once WOOBOOST_PLUGIN_DIR . 'includes/admin/class-wooboost-demo-role.php';
+            }
+        }
+        
+        // Remove the demo role
+        if (class_exists('WooBoost_Demo_Role')) {
+            WooBoost_Demo_Role::remove_demo_role();
         }
     }
 }
