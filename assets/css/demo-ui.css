@@ -1,0 +1,105 @@
+/**
+ * WooBoost Demo User UI Styles
+ * 
+ * Hides specific UI elements for demo users
+ */
+
+/* Hide Update button on product edit pages */
+.demo-user #publishing-action #publish {
+    display: none !important;
+}
+
+/* Hide Move to Trash button on product edit pages */
+.demo-user #delete-action {
+    display: none !important;
+}
+
+/* Hide the entire delete action area */
+.demo-user .misc-pub-post-status .delete-action {
+    display: none !important;
+}
+
+/* Hide Quick Edit action in product list */
+.demo-user .post-type-product .row-actions .inline {
+    display: none !important;
+}
+
+/* Hide Delete action in product list */
+.demo-user .post-type-product .row-actions .trash {
+    display: none !important;
+}
+
+/* Hide bulk delete action */
+.demo-user .post-type-product .bulkactions option[value="trash"] {
+    display: none !important;
+}
+
+/* Hide Duplicate action in product list */
+.demo-user .post-type-product .row-actions .duplicate {
+    display: none !important;
+}
+
+/* Hide restricted menu items */
+.demo-user #menu-posts,
+.demo-user #menu-pages,
+.demo-user #menu-media,
+.demo-user #menu-comments,
+.demo-user #menu-themes,
+.demo-user #menu-plugins,
+.demo-user #menu-users,
+.demo-user #menu-tools,
+.demo-user #menu-settings,
+.demo-user #menu-dashboard,
+.demo-user #toplevel_page_woocommerce {
+    display: none !important;
+}
+
+/* Hide admin bar items */
+.demo-user #wp-admin-bar-wp-logo,
+.demo-user #wp-admin-bar-site-name,
+.demo-user #wp-admin-bar-dashboard,
+.demo-user #wp-admin-bar-themes,
+.demo-user #wp-admin-bar-widgets,
+.demo-user #wp-admin-bar-menus,
+.demo-user #wp-admin-bar-new-content,
+.demo-user #wp-admin-bar-comments {
+    display: none !important;
+}
+
+/* Hide screen options and help */
+.demo-user #screen-options-link-wrap,
+.demo-user #contextual-help-link-wrap {
+    display: none !important;
+}
+
+/* Hide footer links */
+.demo-user #footer-thankyou,
+.demo-user #footer-upgrade {
+    display: none !important;
+}
+
+/* General demo user indicator */
+.demo-user-indicator {
+    background: #ffeb3b;
+    color: #333;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+    position: fixed;
+    top: 32px;
+    right: 20px;
+    z-index: 999999;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Admin bar adjustments for demo indicator */
+.demo-user-indicator.with-admin-bar {
+    top: 52px;
+}
+
+@media screen and (max-width: 782px) {
+    .demo-user-indicator.with-admin-bar {
+        top: 66px;
+    }
+}
