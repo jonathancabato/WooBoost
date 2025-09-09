@@ -124,17 +124,30 @@ class WooBoost_Demo_Role {
         
         // Define allowed pages for demo users
         $allowed_pages = array(
+            'index.php',    // Main dashboard
             'edit.php',     // Product list (when post_type=product)
             'post-new.php', // Add new product (when post_type=product)
             'post.php',     // Edit product (when post_type=product)
             'admin-ajax.php', // AJAX requests
             'admin-post.php', // Admin post processing
+            'profile.php',  // User profile
+            'user-edit.php', // Edit user profile
         );
         
         // Check if current page is allowed
         if (!in_array($pagenow, $allowed_pages)) {
             $this->redirect_to_products();
             return;
+        }
+        
+        // Allow dashboard access
+        if ($pagenow === 'index.php') {
+            return; // Dashboard is allowed
+        }
+        
+        // Allow profile pages
+        if (in_array($pagenow, array('profile.php', 'user-edit.php'))) {
+            return; // Profile pages are allowed
         }
         
         // For allowed pages, ensure they are product-related
@@ -316,9 +329,9 @@ class WooBoost_Demo_Role {
             echo '</div>';
         }
         
-        // Show general demo mode notice on product pages only
+        // Show general demo mode notice on dashboard and product pages only
         $screen = get_current_screen();
-        if ($screen && ($screen->post_type === 'product' || $screen->id === 'edit-product')) {
+        if ($screen && ($screen->post_type === 'product' || $screen->id === 'edit-product' || $screen->id === 'dashboard')) {
             echo '<div class="notice notice-info">';
             echo '<p><strong>' . esc_html__('Demo Mode Active:', 'wooboost') . '</strong> ';
             echo esc_html__('You are in demo mode with limited access to WooCommerce product management.', 'wooboost');

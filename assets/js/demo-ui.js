@@ -152,10 +152,13 @@ jQuery(document).ready(function($) {
     function isAllowedUrl(url) {
         // List of allowed URL patterns
         var allowedPatterns = [
+            /index\.php/, // Dashboard
             /edit\.php\?post_type=product/,
             /post-new\.php\?post_type=product/,
             /post\.php.*post_type=product/,
             /post\.php.*post=\d+/, // Edit existing posts (will be validated server-side)
+            /profile\.php/, // User profile
+            /user-edit\.php/, // Edit user profile
             /admin-ajax\.php/,
             /admin-post\.php/,
             /#/, // Anchor links
