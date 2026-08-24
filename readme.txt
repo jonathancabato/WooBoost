@@ -1,6 +1,5 @@
 === WooBoost ===
 Contributors: wooboost-team
-Donate link: https://wooboost.com/donate
 Tags: woocommerce, boost, optimization, performance, sales
 Requires at least: 5.0
 Tested up to: 6.7
