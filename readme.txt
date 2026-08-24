@@ -45,7 +45,7 @@ Yes, WooBoost requires WooCommerce to be installed and activated to function pro
 
 = Is this plugin compatible with my theme? =
 
-WooBoost is designed to work with any well-coded WordPress theme. If you experience any issues, please contact our support team.
+WooBoost is designed to work with any well-coded WordPress theme. If you experience any issues, please create issue in this github repository.
 
 = Will this plugin slow down my website? =
 
