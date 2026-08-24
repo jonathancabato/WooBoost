@@ -1,6 +1,5 @@
 === WooBoost ===
-Contributors: wooboost-team
-Donate link: https://wooboost.com/donate
+Contributors: Jonathan
 Tags: woocommerce, boost, optimization, performance, sales
 Requires at least: 5.0
 Tested up to: 6.7
@@ -46,7 +45,7 @@ Yes, WooBoost requires WooCommerce to be installed and activated to function pro
 
 = Is this plugin compatible with my theme? =
 
-WooBoost is designed to work with any well-coded WordPress theme. If you experience any issues, please contact our support team.
+WooBoost is designed to work with any well-coded WordPress theme. If you experience any issues, please create issue in this github repository.
 
 = Will this plugin slow down my website? =
 
@@ -70,10 +69,6 @@ No, WooBoost is optimized for performance and includes features to actually impr
 
 = 1.0.0 =
 Initial release of WooBoost. Install and activate to get started with boosting your WooCommerce store.
-
-== Support ==
-
-For support, please visit our website at https://wooboost.com/support or contact us through the WordPress.org support forums.
 
 == Contributing ==
 
